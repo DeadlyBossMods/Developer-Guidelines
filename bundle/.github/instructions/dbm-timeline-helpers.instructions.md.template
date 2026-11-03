@@ -1,0 +1,42 @@
+---
+name: DBM Timeline Helpers and Alerts
+description: "Use when implementing or reviewing TLCount, active-event tracking, TLBatch, TLHandleStateChanged, hardcoded fallback registrations, BlizzYou/BlizzTarget interception, or tank-warning targeting."
+---
+
+# DBM Timeline Helpers and Alerts
+
+Use alongside the [timeline evidence and routing rules](dbm-timeline-routing.instructions.md). Choose helpers from verified event behavior, not merely from matching durations.
+
+For secret target rendering, aggregation scheduling, or shared generic warning display, also follow the [secret-safe warning rules](dbm-warning-rendering.instructions.md); registration/interception is distinct from rendering.
+
+## Count reservations
+
+- Reset `TLCount` with `TLCountReset` at combat start/end. Reserve with `TLCountStart(eventID, eventType, "vbCountKey")` when the bar actually starts. Finish with `TLCountFinish` and warn using its returned `eventCount`, not the already-advanced `vb` counter. Cancel with `TLCountCancel` without advancing.
+- Pending counts are reindexed after finish/cancel. Check optional returned values before use.
+- When an ADDED-time decision depends on the event's count, use `TLCountStart`'s reserved count rather than a `vb` counter that may still reflect same-timestamp terminal ordering.
+
+## Same-ID resends
+
+- After confirming state 0 in ADDED, route only if `TLTrackActiveEvent` returns true. Release with `TLReleaseActiveEvent` only on terminal states 2/3, never pause/resume 1/0. Call `TLActiveEventReset` at combat boundaries.
+- This is not deduplication of distinct IDs or equal durations.
+
+## Batch helpers and cleanup
+
+- Use batch helpers only for evidence-confirmed supersession/duplicate batches, never merely because durations match. `TLBatchStart` defers eligible starts and count reservations until the surviving row is known.
+- For deferred batches, update routing occurrence state only for surviving rows, not canceled duplicates.
+- `TLBatchTrackLatest` only tracks/replaces reservations; it does not start or defer bars. Pairing it with immediate `TLStart` does not prevent early-refresh messages. Use the narrowest helper and retain legitimate overlaps.
+- `TLBatchIgnoreInitialUntil` is only for a verified bad opening batch and also ignores the unlocking event.
+- For explicit batch handlers, call `TLBatchUntrack` on state changes as required by that lifecycle and `TLBatchReset` at combat boundaries. Count, active-ID, batch, and resolver state have separate resets; reset each state system actually used. Do not assume one reset clears the others.
+
+## Standard terminal handling and exceptions
+
+- `TLHandleStateChanged` is appropriate only when states 0/1 are inert and terminal handling is standard. It performs terminal batch/active-ID cleanup before finish/cancel and returns the actual state. It leaves warnings, stages, and derived-timer cleanup to the module.
+- Do not substitute it for handlers needing intermediate cleanup order, the untracked bucket, type-filtered finishing, state-1 cancellation, scheduled completion, or bespoke timing/stage/duplicate handling. If its terminal-only batch cleanup does not fit, keep explicit helpers.
+- State 3 remains cancellation unless this particular event is verified to complete on 3, including timing near expected completion. Mere absence of state 2 is insufficient. Pass only a module-local, evidence-validated boolean as `state3Completes`, not a spell ID/name. Preserve documented encounter exceptions rather than generalizing them.
+
+## Fallback registration and warnings
+
+- Registration is not execution: `SetTimeline`/`SetAlert` register fallback metadata; they do not start timers or show warnings.
+- During hardcoded engage, retain timeline-only registration when needed for users with hidden DBM bars. Bad-state recovery must use normal full fallback, not that timeline-only mode.
+- For BlizzYou/BlizzTarget, keep `SetAlert` in normal fallback. At the hardcoded trigger, use `Show(eventCount, "voiceToken")` to queue protected-warning interception; do not additionally `Play`, because the dispatcher owns audio. Other ordinary warning types retain their existing `Show`/`Play` behavior.
+- For tank warnings, retain `IsTank` for fallback registration. For a hardcoded completion with one verified possible caster, use `IsTanking("player", "boss1", nil, true)` only when `boss1` is the verified unit. If multiple caster units are plausible or the unit is uncertain, ask rather than silently choosing one.

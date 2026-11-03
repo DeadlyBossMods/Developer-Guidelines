@@ -1,0 +1,62 @@
+# Project Guidelines
+
+## Workspace Layout
+- This guidance assumes a parent workspace containing sibling DBM checkouts, with this file installed at `<workspace>/.github/copilot-instructions.md`. `DBM-Retail` denotes the main DeadlyBossMods checkout; `DBM-Dungeons` denotes the dungeon checkout. Other checkout names below are examples, not requirements to clone unrelated packages.
+- Resolve examples against the actual checkout layout. If a checkout has a different name, locate its equivalent file rather than creating duplicate repositories. Strip Markdown `#section` fragments before filesystem reads, then locate the heading inside the file.
+- Installed guidance is the active policy. A `Developer-Guidelines/bundle/` checkout contains distribution templates, not a second active instruction source; consult it only for installation or deliberate guideline maintenance.
+
+## Maintaining Persistent Guidance
+- Topic files live in the workspace-root `.github/instructions/` directory. Links such as `instructions/dbm-development.instructions.md` below are relative to this entry-point file, `.github/copilot-instructions.md`; resolve them to `.github/instructions/dbm-development.instructions.md`, not to a workspace-root `instructions/` directory.
+- When saving or updating durable DBM guidance, update the appropriate existing topic in [instructions/](instructions/). Do not create parallel policy copies in legacy memory-tool stores or session plans.
+- Keep encounter-specific guidance in [DBM Encounter-Specific Guidance](instructions/dbm-encounter-specific.instructions.md); promote broadly applicable lessons to the relevant general topic instead.
+- Personal cross-project preferences belong in each developer's user-level agent configuration, not this shared DBM guidance. Do not overwrite or publish personal instructions during installation.
+- Before adding a rule, check existing guidance and reconcile it. Save the final accepted outcome and useful constraints, not canceled proposals or mistaken-test narratives.
+- If no existing topic fits, agree with the user on a new canonical topic and link it from this entry point; do not silently create another storage location.
+- These rules govern deliberate persistent-guidance saves. Ordinary task notes and plans are not standing instructions; this guidance does not mechanically control a harness's automatic memory feature.
+
+## Code Style
+- Follow the applicable project's `.editorconfig`. DBM requires a final newline (`insert_final_newline = true`); the resulting empty EOF line shown by editors is intentional, not an extra-line defect. Preserve it and do not flag or remove it during diagnostics/review. This does not require additional blank lines after the final newline.
+- Lua with [LuaLS (lua-language-server)](https://github.com/LuaLS/lua-language-server) annotations (LuaCATS, based on EmmyLua), plus namespace markers in DBM-Retail/DBM-Core/DBM-Core.lua. Use [LuaLS annotation documentation](https://luals.github.io/wiki/annotations/) for exact supported syntax and semantics rather than assuming full compatibility with other EmmyLua implementations.
+- DBM extends LuaLS with [DeadlyBossMods/LuaLS-Config](https://github.com/DeadlyBossMods/LuaLS-Config): its plugin provides DBM mod/event-handler type inference and custom event-registration, spell-ID, and sync diagnostics; its Definitions supplement WoW API types. Consult these definitions and plugin behavior alongside DBM's own annotations when interpreting diagnostics.
+- Before correcting annotation errors, check the exact diagnostic, surrounding declarations, and active LuaLS configuration/libraries/plugin. If mod fields or handler parameter inference unexpectedly fail, verify plugin loading (see LuaLS-Config's setup/troubleshooting guidance) before adding redundant annotations. Fix the actual type/annotation mismatch; do not hide it with broad diagnostic suppression, `any`, or unsupported annotation syntax. Validate fixes with the configured LuaLS, not Lua syntax checks alone.
+- Prefer file-scope locals and shared localization handles like L/CL in DBM-Retail/DBM-Core/DBM-Core.lua.
+- Localization tables live in localization.<locale>.lua files; see DBM-Archaeology-GH/DBM-Archaeology/localization.en.lua.
+- Use do ... end blocks to scope locals in module files; see DBM-Archaeology-GH/DBM-Archaeology/Archaeology.lua.
+
+## Architecture
+- DBM-Retail/DBM-Core is the core addon; load order is defined in DBM-Retail/DBM-Core/DBM-Core.toc.
+- Each expansion or feature is its own addon folder; boss mods are load-on-demand plugins (DBM-Retail/README.md).
+- Addons declare RequiredDeps on DBM-Core in their .toc files; see DBM-Archaeology-GH/DBM-Archaeology/DBM-Archaeology.toc.
+
+## DB2 Data and Module Scaffolding
+- Before scaffolding boss modules or dungeon/raid packages from names, articles, or Wago.tools data, discovering patch-added delve bosses or variants by map ID, or looking up encounter, zone/map, journal, or difficulty IDs and build diffs, read and follow [DBM DB2 Data and Module Scaffolding](instructions/dbm-db2-scaffolding.instructions.md). Include matching localization and load-list wiring automatically; use hotfix-enabled table lookups, extend existing modules for confirmed boss variants instead of duplicating them, and preserve client-specific journal availability.
+
+## Build and Test
+- Validate Lua syntax, Luacheck, and LuaLS diagnostics; repository CI defines lint and packaging checks. Follow the [scope-aware LuaLS validation checklist](instructions/dbm-development.instructions.md#luals-validation-parity): correctly configured focused local diagnostics suffice for encounter-only edits; core/shared changes require the full CI-equivalent check.
+- In-game demo: /dbm test. GUI buttons previewing renames, timers, and alerts are independent production features and must be preserved.
+
+## Screenshot Log Analysis
+- Before locating pull logs, checking capture completeness, interpreting screenshot logs, or changing log-derived routing, read and follow the [DBM Log OCR Procedure](instructions/dbm-log-ocr.instructions.md).
+- Use the designated three-pass OCR pipeline, resolve or explicitly report audit issues, and reuse the repaired per-pull cache. Do not substitute raw Tesseract, image-only review, or per-image sidecars.
+- If the required procedure cannot be completed, report the blocker before proceeding or claiming validation.
+
+## Hardcoded Timeline Routing
+- Before analyzing or changing hardcoded timeline routing, read and follow the [DBM Timeline Evidence and Routing rules](instructions/dbm-timeline-routing.instructions.md).
+- Before implementing or reviewing timeline helpers, fallback registrations, or hardcoded alerts, also read and follow the [DBM Timeline Helpers and Alerts rules](instructions/dbm-timeline-helpers.instructions.md).
+- For standard-to-hardcoded module conversions, also follow the [DBM Hardcoded Conversion conventions](instructions/dbm-hardcoded-conversion.instructions.md).
+- When working on an encounter, read its relevant section in [DBM Encounter-Specific Guidance](instructions/dbm-encounter-specific.instructions.md); keep historical findings scoped rather than treating them as current validation.
+
+## Project Conventions
+- Before adding or changing features/settings, follow the surrounding-code, zero-cost-disabled, low-cost-enabled, lazy-initialization, and exception-approval rules in [DBM Development Conventions](instructions/dbm-development.instructions.md). Also use that guidance for secret-safe APIs, cross-client range calibration, wipe-health caching, handler guards, core refactors, localization, agent tooling, and Mythic+ encounter-active checks.
+- For native aura tracking, formatters/previews, glows/sounds, external aura-addon adaptations, or Mainline/Classic nameplate compatibility, follow the [DBM Auras and Nameplate Compatibility rules](instructions/dbm-aura-nameplate.instructions.md).
+- For secret warning rendering, target helpers, aggregation scheduling, slots/chat/notes, or shared generic warnings, follow the [DBM Secret-Safe Warning rules](instructions/dbm-warning-rendering.instructions.md).
+- Common localization uses commonlocal.<locale>.lua in DBM-Retail/DBM-Core; module localization mirrors this naming.
+- Old content is split into separate addon packages to reduce update size (DBM-Retail/README.md).
+
+## Integration Points
+- WoW addon API usage is pervasive (CreateFrame, RegisterEvent, GetBuildInfo, UnitClass) in DBM-Retail/DBM-Core and module files.
+- Addon loading and dependencies are governed by .toc metadata (Interface, RequiredDeps, SavedVariables).
+
+## Security
+- SavedVariables contain user settings; core and module .toc files declare them.
+- Avoid sharing logs with personal account names.

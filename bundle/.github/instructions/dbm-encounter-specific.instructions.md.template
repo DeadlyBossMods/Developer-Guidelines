@@ -1,0 +1,184 @@
+---
+name: DBM Encounter-Specific Guidance
+description: "Use when maintaining Ulatek, Nekzali, The Coiled Altar, Crown of the Cosmos, Lightblinded Vanguard, Commander Kroluk, Derelict Duo, Mchimba, Shalhadaar, Vorasius, Lost Explorers, or Kithix. Consolidates scoped encounter exceptions and historical findings."
+---
+
+# DBM Encounter-Specific Guidance
+
+## Scope and maintenance
+
+- Read the relevant encounter section alongside the [routing rules](dbm-timeline-routing.instructions.md) and [helper rules](dbm-timeline-helpers.instructions.md). Keep encounter exceptions here, not in separate per-boss instruction files.
+- Consolidated on 2026-10-20 from saved memories, not revalidated against current modules or screenshots in this consolidation. Recorded observations retain their stated difficulty/corpus scope; they are not universal or current validation guarantees.
+- Before changing a recorded route, verify current code and relevant evidence using the [OCR procedure](dbm-log-ocr.instructions.md). Historical-only entries are not implementation instructions.
+- Source names below are historical provenance labels from the original guidance consolidation, not files supplied with this bundle or required local paths. Private memories, session plans, screenshot corpora, and prior test outputs are not distributed. Preserve provenance and evidence limitations; obtain relevant evidence from maintainers or reconstruct it before claiming new validation.
+
+## Ulatek
+
+Scope: recorded 12.1 Week2 Story, Normal, and Heroic evidence, plus Week9 actual LFR.
+
+- Week2 `LFR:World/Week2/Ulatek` is Story, not LFR. The later Story correction supersedes older descriptions. Preserve separate Story and actual-LFR routers/state.
+- Retain difficulty-specific staging and independent timeline fallbacks. Normal evidence supports opening Rage completion arming stage 2, non-attackable boss1 targetability as the primary trigger, and the subsequent 118-second Rage as an armed fallback. Heroic evidence lacks that targetability line and supports the fallback.
+- Stage-3 terminal state 3 is late/inaccurate in the recorded pulls. Raw-duration scheduled completion/count finishing and alerts remain authoritative for those events; actual LFR also has recorded late stage-1 Call and stage-2 Spit terminals.
+- Use survivor-only deferred batch resolution for confirmed duplicate stage-3 openings. Preserve explicit state handling where it needs the untracked bucket or scheduled authoritative completion; do not replace it with generic terminal handling.
+- Preserve difficulty-specific collision order: Heroic stage-1 exact 52 is Thrash then Waves; its recorded stage-3 60 sequence extends through Call, Submerge, then Bite. Actual LFR stage-1 exact 60 is Call then Mothers; stage-3 exact 65 is Call then Mothers, and exact 56 is Circling then Submerge. These are not rounded-decimal splits.
+- Reset scheduled callbacks and the count/batch/active-ID systems actually used at combat boundaries. Do not invent unseen late-fight mappings beyond the captured corpus.
+- Historical validation includes pre-existing Story/Heroic fallback limitations; baseline parity is not proof those baselines were error-free.
+
+Sources: `ulatek-stage3-cancel-schedule-and-batch.json` (later Story correction), `ulatek-heroic-week2-routing.json`, `ulatek-heroic-week2-ulatek2-validation.json`, `ulatek-normal-stage2-utc.json`.
+
+## Nekzali
+
+Scope: recorded 12.1 Mythic Week7 pulls and Heroic Week7 multi-pull evidence.
+
+- Preserve the deliberately cross-wipe-latched `badStateDetected`: a confirmed failure keeps hardcoding disabled until reload/update. Do not reset it merely because a new pull starts.
+- Optional cast/unit phase detection must retain the independent, evidence-validated timeline phase fallback. Guard stage entry to avoid duplicate announcements.
+- Preserve the narrow raw-49.5 Rend handling that covers the recorded 49.499 case, and the stage-2 40-second occurrence reset at each verified 8-second opening marker.
+- Limit replacement tracking to confirmed opening-batch supersession. Later overlapping 40-second events are legitimate; raw 40/39.999 alone does not distinguish Barrage from Amani across pulls.
+- Core recovery enumeration following fallback is not automatically new module input. Historical offline successes do not mean later live pulls ran hardcoded after the latch was set.
+
+Sources: `nekzali-mythic-week7-routing-failure.json`, `nekzali-heroic-week7-multi-review.json`, global `dbm-guidelines.md`.
+
+## The Coiled Altar
+
+Scope: recorded 12.1 Week9 actual LFR, with older Story/Normal/Heroic comparisons.
+
+- Week2 `LFR:World` evidence reports difficulty 220 (Story); Week9 reports difficulty 17 (actual LFR). Keep actual-LFR routing independent.
+- Actual LFR's recorded stage-1 exact 49.411 collision is Guillotine then Toxic, using separate reset occurrence state. The first 38-second stage-2 event and later timeline-silence stage-3 transition are scoped evidence, not universal stage triggers.
+- Sharing the existing Normal stage-3 router was corroborated by that LFR corpus, including raw 53.5 Dread. Preserve raw precision; do not assume every other difficulty shares those routes.
+- Historical comparisons included existing Story/partial-Heroic mismatches and unsupported/lossy Normal cache formats. Those results are not fresh defect diagnoses or successful zero-event validations.
+
+Source: `coiled-altar-lfr-week9.md`.
+
+## Crown of the Cosmos
+
+- Recorded 12.0 Normal Week1 pulls and Week2 evidence show stage-2 rounded-20 events alternating Void Expulsion, Voidstalker Sting, then repeating until intermission. Keep that ordering scoped to the cited Normal evidence.
+- Mythic has stage 2.5 but no usable recorded routable timeline signals during it. Do not add Mythic 2.5 routing from other difficulties; recorded stage-2 timers cancel naturally. Its stage-3 detection uses a new timeline batch after an evidence-supported silence interval.
+
+Sources: `crown_stage2_20s_alternation.json`, global `dbm-guidelines.md`.
+
+## Lightblinded Vanguard
+
+Scope: recorded 12.0 Mythic Week16/17 evidence.
+
+- Detect the third empowered Divine Storm's late-shift trigger using the count reserved by `TLCountStart`, not a potentially stale ADDED-time `vb` counter.
+- The ambiguous rounded-159 Searing sequence can contain empowered then regular casts; preserve evidence-backed cast-sequence resolution rather than a fixed-slot assumption.
+
+Sources: `vanguard-tlcountstart-lateshift-trigger.json`, `vanguard-mythic-156-159-variant.json`.
+
+## Commander Kroluk
+
+Scope: recorded 12.0 M+ Windrunner Spire evidence.
+
+- Recorded greater-than-900-second placeholders and 0.001-second Bladestorm startup artifacts are not real casts; preserve the encounter-specific artifact handling. Do not generalize these thresholds to other encounters.
+- Rallying Bellow is derived from a verified cluster of state-1 transitions on active non-Bladestorm events, not from secret spell fields.
+
+Source: `commander-kroluk-placeholder-timers.json`.
+
+## Derelict Duo
+
+Scope: recorded 12.0 M+ Windrunner Spire evidence.
+
+- Debilitating Shriek's 48-second event completes on state 3 only when elapsed time is within approximately one second of its scheduled duration. Early state 3 remains cancellation; this is not a global completion rule.
+
+Source: `derelict-duo-shriek-state3.json`.
+
+## Mchimba
+
+Scope: recorded 12.1 M+ Week1 King's Rest evidence.
+
+- Surviving rounded-30 events follow Awakening Slam, Burn Corruption, Burn Corruption; duplicate batch rows must not advance that sequence.
+- Recorded rounded-102 and rounded-63 entries are placeholders that pause then cancel. Keep their handling encounter-specific.
+- Use shared survivor-only batch resolution, not a local duplicate implementation. Preserve legitimate later same-bucket overlaps.
+
+Source: `mchimba-batch-resolver.json`.
+
+## Historical only: Shalhadaar
+
+- The saved Week1 Normal result found the 45-second state chain routed all recorded cases without changes. Its "flawless/production-ready" wording is a dated corpus result, not a permanent guarantee.
+- Retain it as a comparison baseline only; verify current code/evidence before making or rejecting future routing changes.
+
+Source: `shalhadaar_45s_routing_perfect.json`.
+
+## Historical only: Vorasius
+
+- Recorded 12.0 Heroic Week2 durations agreed with the then-existing non-Mythic table, supporting reuse in that corpus.
+- This does not require tables to remain merged if later evidence differs. Revalidate before treating the old shared buckets as current coverage.
+
+Source: `vorasius-heroic-shares-easy-timers.json`.
+
+## Lost Explorers
+
+Scope: current module structure inspected on 2026-10-20; completed saved recurrence work cites 12.1 Mythic Week8 `ExplorersWipe1`/`ExplorersWipe2` and a Heroic Week4 regression corpus. Earlier Normal Week2/Heroic Week3 staging observations are historical background. Code inspection during consolidation is not a fresh screenshot audit or replay.
+
+Module: [TheLostExplorers.lua](../../DBM-Retail/DBM-Raids-Midnight/TheVenomousAbyss/TheLostExplorers.lua). Historical regression runner: `Agent Tools/explorers_replay.lua` (not bundled; obtain a compatible runner from maintainers or reconstruct the cases below before claiming replay validation).
+
+### Stage detection and difficulty boundaries
+
+- Normal, Heroic, and Mythic use the module's four-stage schedule. Do not assume the `timersNormal`/`normalHardcodeActive` names mean those paths exclude Mythic. Other difficulties retain normal Blizzard fallback unless separately supported by evidence.
+- Incoming stages are identified from the deferred batch's currently active events, not friendly-unit event order or one isolated duration. Current code requires at least three active entries, then checks rounded markers in priority order: 60 for stage 1, 27 for stage 2, 11 for stage 3, 16 for stage 4. These are full-batch contextual signatures, not globally unique ability durations.
+- `UNIT_FLAGS` for friendly boss1/boss3/boss4 announces Fling Fish separately; it must not regain the old pending-stage queue role. A matched boss2 channel start/stop provides the existing stage-1 backup. Preserve its cast-GUID pairing rather than reacting to arbitrary channel stops.
+- The old stage-skip diagnosis described competing friendly-unit queues advancing Normal past stage 2. Preserve this as a regression concern, not a reason to restore its superseded proposal. Spell IDs used to identify stage-exclusive abilities offline are not legal restricted-runtime branch conditions.
+
+### Mythic stage-2 recurrence ambiguity
+
+- Mushroom Toss, Shell Spin, Explosive Surprise, and Icebound Flames can all recur with exactly 32-second durations. Neither a special 31.96 duration route nor global occurrence order reliably separates them.
+- Require a positive, unique match between the new ADDED receipt time and a previously resolved ability's expected deadline. Current code uses a symmetric 0.5-second tolerance; zero or multiple matches must take the existing unhandled-event/full-Blizzard-fallback path. Failure to match Icebound alone is not proof of Explosive.
+- Record the deadline immediately from ADDED receipt time plus raw duration, independently of bar visibility and the one-second queued bar-start delay. Do not derive this evidence from timer `GetRemaining` or the delayed start time.
+- Deterministic stage-2 seeds are rounded 3 Mushroom, 7 Shell, 13 Explosive, and 2/16 Icebound. Update only the uniquely resolved recurrence's owner event ID and deadline.
+- Keep Normal/Heroic's separately verified rounded-32 occurrence sequence distinct: Mushroom, Shell, Explosive, Icebound. Do not replace that sequence merely because Mythic needs deadline matching.
+
+### Ownership, lifecycle, and other ambiguities
+
+- Preserve the explicit state handler. A state-2 finish retains deadline evidence for deferred recurrence routing. Pause/state 1 and cancel/state 3 invalidate only the entry still owned by that event ID; an old predecessor's terminal event must not erase its replacement.
+- A cancellation before the one-second queued start removes that queued event without reserving a count or producing a warning. Reserve `TLCount` when the surviving bar actually starts; retain same-active-ID resend protection.
+- Clear expected deadlines on combat boundaries, full fallback, stage changes, and the stage-1 channel-stop backup. Preserve queue/callback cleanup on combat end and full fallback. Unlike Nekzali, the current module resets `badStateDetected` on engage; do not impose another encounter's cross-wipe latch.
+- Preserve the other stage-local ambiguity rules: stage-1 rounded 31 alternates Icebound then Blink, reset by the 5-second Icebound seed/stage-1 entry; stage-4 rounded 27 follows Frostfire, Icebound, Shell and resets on stage-4 entry. These are existing scoped rules, not substitutes for Mythic stage-2 deadline evidence.
+- Keep existing warning ownership: Blink's BlizzYou interception must not get an extra `Play`; Shell uses delayed secret-target rendering. Shredding's tank check uses verified boss4 (Iku), not a generic boss1 substitution, with the existing alternate-tank taunt path.
+
+### Regression anchors and verification limits
+
+- Saved Week8 evidence identifies the primary old failure as Wipe1 event 305 being misrouted to Icebound instead of Explosive; event 306's subsequent refresh was secondary. Wipe2 includes Explosive event 349 with raw 31.965 followed by Icebound 350 with raw 32. Preserve these decimals and chronology in regression fixtures.
+- The completed plan records both Mythic pulls replayed with visible/hidden bars, a full Heroic baseline-parity replay, and 17 synthetic lifecycle/ambiguity/reset cases. These are prior results, not tests rerun during this consolidation.
+- Reuse a compatible existing real-module/core-helper runner when available. If it or the corpus is unavailable, report the coverage blocker rather than claim historical tests ran. Important cases include ADDED before predecessor state 2, reversed legal terminal/add order, hidden bars, cancel before queued start, predecessor cancel after replacement, resends, stage/wipe reset, no/multiple deadline candidates, and unchanged Normal/Heroic routing.
+- Shell Spin followed by ordinary Icebound is a regression anchor for the completed universal/stateless core warning fix, which the user confirmed works correctly. Preserve it as regression coverage, not an unresolved defect or reason for an encounter routing workaround. Follow the [warning-rendering contracts](dbm-warning-rendering.instructions.md) for future core changes.
+
+Historical provenance: `lostexplorers-stage-transition-analysis.json`, completed Mythic recurrence and core warning implementation notes, and module/runner inspection during consolidation on 2026-10-20. The original private evidence is not bundled; these are prior findings, not fresh validation.
+
+## Kithix
+
+Scope: completed 12.1 Week9 Story (220), LFR (17), Normal (14), and Heroic routing. Mythic is not validated by these plans. Current module inspected on 2026-10-20; no new OCR/replay performed during consolidation.
+
+### Shared lifecycle and warning ownership
+
+- Keep `timersEasy` for Story/LFR/Normal with explicit difficulty differences, and separate Heroic rules. Later completion notes supersede old Heroic-only and no-Normal plan restrictions. Preserve the user's `statTypes = "story,normal,heroic,mythic"` independently of routing coverage.
+- Use raw duration for `TLStart` and scheduled completion; rounded buckets are routing keys, not permission to discard decimals. Runtime IDs own lifecycles, not ability identity.
+- Premature state-2 Horrors/Grasp/Null Gate events use per-ID scheduled completion with bugged-event marking. Ignore their premature finish; finish counts at the raw deadline. Preserve bar/count ownership, unscheduling, bugged-ID removal, and retained core mapping cleanup on finish/cancel.
+- A tracked phase-1 cancellation batch clears all stage-1 schedules, including prematurely terminal rows that receive no subsequent cancel. Guard stage-2 transition against repeats; clear add window, old schedules, bars, and reservations before entering it. Also clean on fallback/combat end.
+- Preserve the cross-pull `badStateDetected` failure latch: engage/end reset routing counters and schedules, not this latch. Unknown routes use full fallback with debug notification, not passthrough. Hidden bars retain timeline-only metadata during valid hardcoded engage; unsupported difficulties retain normal fallback.
+- Divine Radiance is 1303169; Abyssal Grasp is 1303406 with its own timer. Preserve personal aura audio for Horrors, Grasp, Null Gate, and Negation rather than adding duplicate completion announcements.
+- Dark Devastation's hardcoded tank warning checks verified boss1 precisely. Voidswarm completion arms generic add warnings; Darkness completion disarms them. Preserve the option/window guards and boss2-4 cast/channel registrations; slots can become eggs, so never infer ability identity from the unit token.
+- Reuse `AddSecretGenericWarning`. Current Kithix passes target-only sound policy through `UnitIsUnit("target", unit)`; do not replace it with the older helper proposal's default-sound call.
+
+### Story/LFR/Normal routing
+
+- Stage 1 shared buckets: Voidswarm 5; Appendage 15/21/34; Devastation 20/22/77; Extinguish 31/62. Normal additionally has Devastation 23/54.
+- Story/LFR raw 45 first means Devastation, then Radiance. Normal 45 means Radiance only. Raw 57 first means Darkness, then Extinguish. Rounded 119 alternates Voidswarm then Darkness in ADDED order; raw 119 is truly shared, and Story Voidswarm also has 118.999. Preserve/reset all three ambiguity counters.
+- LFR/Normal additionally use opening Horrors 40 and Grasp 67; scheduled premature-finish recurrences are Horrors 37/82 and Grasp 30/89. Story must not gain these routes merely because it shares the router.
+- Story enters stage 2 on 121-second Eclipse, without inventing a Null Gate from absent evidence. LFR/Normal enter on the first 3-second Null Gate; 61 is Eclipse thereafter.
+- LFR stage-2 10 always means scheduled Null Gate, including the first occurrence; no Negation was observed in that corpus. Normal stage-2 first 10 means Negation, later 10 scheduled Null Gate; 15 also means Negation. Do not apply Normal/Heroic's first-10 rule to LFR.
+
+### Heroic routing
+
+- Stage 1: Voidswarm 5; Appendage 12/15/18/32; Devastation 20/22/69; Extinguish 57; opening Horrors 37 with scheduled 33/76 recurrences; opening Grasp 62 with scheduled 27/82 recurrences; Radiance 40.
+- True raw collisions require ADDED-order counters: 29 opens with Extinguish then Appendage; 52 opens with Darkness then Extinguish; rounded 109 alternates Voidswarm then Darkness. Raw 109 is shared; Darkness also has 108.999.
+- First 3-second Null Gate enters stage 2. Stage-2 15 is Negation; identical raw 10 opens with Negation then scheduled Null Gate recasts; 61 is Eclipse.
+
+### Regression anchors and evidence limits
+
+- Recorded corpus: Heroic Kill/Wipe1/Wipe2 (67/31/50 additions), Story kill (23), LFR kill (32), Normal kill (38). Prior replay coverage includes visible/hidden bars, consecutive pulls, real module/core helper loading, and synthetic lifecycle/fallback/window tests. These are saved results, not tests rerun here.
+- Preserve Heroic event 332 at 37.01 with raw 32.999 Horrors and immediate state 2; it must not finish early. Keep exact raw collision classes, stage-2 10 ordering, no double finishes, no stale stage-1 callbacks, and unsupported-difficulty/failure-latch tests.
+- Story phase-1 cancel batch is 166.42, with Eclipse 121 added at 174.43. LFR cancel batch 159.37 must also clear already-terminal scheduled Grasp 49 and Horrors 54; first stage-2 Null Gate/Eclipse arrive at 167.38. LFR scheduled 10s Null Gates at 170.39/180.40 must not finish immediately; kill 188.76 cancels the last before its deadline.
+- Normal transition 165.62 cancels schedules 24/30; Null Gate 35 completes 186.65, 37 completes 196.66, and 38 is killed before 206.64. Preserve raw Extinguish 56.999 and recorded kill boundary 197.49.
+- Saved plans record repaired canonical OCR caches and image-confirmed premature finishes/centisecond jitter. Those anomalies are not unresolved OCR by themselves; follow the OCR procedure before new log interpretation. Generic warning secret sinks still require live-client verification.
+
+Historical provenance: completed generic-helper, Heroic, Story, LFR, and Normal implementation notes, and module inspection during consolidation on 2026-10-20. The original private evidence is not bundled; these are prior findings, not fresh validation.

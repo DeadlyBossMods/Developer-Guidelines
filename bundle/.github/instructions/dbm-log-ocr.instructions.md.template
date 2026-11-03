@@ -1,0 +1,47 @@
+---
+name: DBM Log OCR
+description: "Use when locating DBM pull logs, checking screenshot capture completeness, interpreting screenshot logs or encounter timeline evidence, or changing log-derived timer routing. Defines the mandatory OCR cache and audit procedure."
+---
+
+# DBM Log OCR Procedure
+
+## Log discovery
+
+- Use user-supplied paths first. Otherwise start under `12.1 Logs/` and search the relevant hierarchy, not broad filename scans.
+- Known raid layouts use `<Difficulty>/<Week-or-PTR>/<BossFolder>`; Mythic+ layouts use `M+/<Week>/<Dungeon>/<BossFolder>` or the older `M+/<Dungeon>/<BossFolder>`. These are discovery hints, not exhaustive path requirements.
+- Search `12.0 Logs/` only when requested or needed to follow cited historical evidence; label that evidence's coverage explicitly. Encounter metadata, not folder labels, determines difficulty.
+
+## Required pipeline
+
+Before interpreting screenshot logs or changing log-derived routing, run the [canonical OCR script](<../../Agent Tools/ocr_logs.py>) from the workspace root for the requested pull folders:
+
+```sh
+python3 "Agent Tools/ocr_logs.py" --folder "<pull-folder>"
+```
+
+Additional pull folders can follow the first path. Do not substitute raw Tesseract, per-image sidecars, or an image-only review for this pipeline.
+
+The targeted command preserves an existing canonical cache and refreshes its audit. For a new cache, preserve all three pass files (`log1.txt`, `log2.txt`, `log3.txt`), the canonical `log.txt`, and `ocr_issues.txt`. Do not use `--force` routinely: it overwrites the canonical cache and may discard reviewed repairs.
+
+## Resolve audit issues before routing
+
+Inspect every screenshot implicated by an audit issue. Repair the canonical cache from image evidence, then rerun the same targeted command to refresh the audit without overwriting those repairs.
+
+Report genuinely ambiguous issues or confirmed API anomalies before routing work. Never guess a repair merely to clear an audit warning.
+
+Images remain authoritative; the repaired canonical cache is the reusable working source. Do not reopen all images in later sessions unless a specific doubt or missing evidence requires it.
+
+## Evidence boundaries
+
+- A pull folder is one encounter stream. Merge its pages, but do not mix pulls or weeks.
+- Keep the script's conservative adjacent-page deduplication and timestamp safeguards in the script and its reference material; do not duplicate their implementation in always-loaded instructions.
+- The cache is filtered. An event absent from cached text is not proof it never occurred. Consult the source images when the requested evidence is not retained by the pipeline.
+- New OCR runs retain `ENCOUNTER_WARNING` lines, including captured severity, for warning disambiguation. Older caches may predate this filter addition; a cache-preserving audit does not backfill omitted warnings. If that evidence is needed, inspect the relevant source screenshots and repair the canonical cache through the review procedure rather than routinely using `--force` or assuming no warnings occurred.
+- If the script or required outputs are unavailable, explicitly report the blocker instead of silently switching workflows or claiming OCR or replay completion.
+
+## Capture completeness
+
+- Missing screenshot/cache lines do not by themselves establish missing API events or ring-buffer loss. Check source-image and page-boundary coverage before asserting event absence.
+- A recorded debug-viewer defect clipped partial rows at page boundaries. Preserve full-row pagination with a bottom safety row and a page stride that leaves no undisplayed gaps; verify boundaries if changing that UI. Historical viewport dimensions and line counts are not fixed requirements.
+- The recorded debug ring-buffer overflow discards oldest contiguous entries; it does not explain isolated missing middle rows. Recheck the relevant capture implementation if that behavior is in question.
+- Preserve debug target-row duplicate suppression across cast start/stop/succeeded and channel start/stop: only `target` rows matching boss1 through boss5 are suppressed. Boss-unit rows and unrelated targets still log; keep registrations and debug levels unchanged. This is capture deduplication, not timeline-event deduplication or permission to compare secret ability metadata.

@@ -1,0 +1,87 @@
+---
+name: DBM Development Conventions
+description: "Use when adding or changing DBM features or settings, validating LuaLS diagnostics against CI, evaluating runtime efficiency and lazy initialization, or changing boss-token presence, threat or target comparisons versus secret unit identity, secret-safe class coloring or distance checks, cross-client range calibration, cached wipe health, event-handler guards, core refactors, localization, agent-only tools, or Mythic+ encounter-active checks."
+---
+
+# DBM Development Conventions
+
+## Evidence and adoption scope
+
+- Distinguish an external addon's observed implementation, a demonstrated DBM defect, approved scope, and completed/live-validated work. Similar code or a different layout alone is not a defect or permission for a broader port; source similarity does not establish performance gains or taint safety.
+- Verify live state and expected outputs after a reported restore or completed action; an action summary alone is not evidence of completion. This does not authorize discarding changes.
+- Mocks must execute the lifecycle whose correctness is claimed. For scheduling/cleanup claims, run queued callbacks and verify unaffected owners rather than relying on no-op stubs or pass totals alone.
+
+## Match surrounding code
+
+- Before building an option or feature, find the nearest relevant existing example in the same or related files and follow its shape. For GUI options, reference existing GUI option files. Match established helpers, naming, layout, settings/reset wiring, localization, and lifecycle patterns rather than inventing a parallel approach.
+- Consistency is intentional, but correctness, secret-safe API contracts, and the efficiency/lifecycle rules below take precedence over copying an example. Do not reproduce an inefficient or unsafe pattern merely because it already exists.
+- If a different approach offers meaningful gains, present the existing pattern and concrete alternatives, explain the evidence and tradeoffs, recommend an approach, and obtain the user's decision before departing from the convention. Do not propose churn or new abstractions for minuscule, inconsequential, or speculative gains.
+
+## LuaLS validation parity
+
+- For encounter-module-only changes, focused local LuaLS diagnostics on the edited files are sufficient; a full repository check is not required by default. Keep the workspace's configuration/type context, DBM plugin, DBM definitions, and required core/WoW API libraries loaded rather than checking isolated files without their dependencies. Confirm diagnostics have completed for the edited files; an empty Problems result alone does not establish that the check ran with the required setup. Report this as "edited-file LuaLS diagnostics clean," not a full CI-equivalent pass. Continue targeted Lua syntax, Luacheck, and relevant routing/lifecycle tests.
+- Require the full repository-root CI-equivalent CLI check for changes in `DBM-Core`, `DBM-GUI`, or `DBM-StatusBarTimers`, and for shared APIs/types, LuaLS plugins/definitions, or validation configuration changes. Escalate encounter-only checks when configuration/inference is suspect, changes affect shared consumers, or CI reports a failure.
+- Before claiming a CI-equivalent LuaLS pass, inspect the target repository's current CI workflow and the referenced LuaLS-Config action. Match their LuaLS version, check level, configuration, plugin, library definitions, and check root; the same binary version or `.luarc.json` alone does not establish parity.
+- For the full check, use LuaLS-Config's `Check-Config.lua`, `--dbm_libraries`, and `--trust_all_plugins`. Follow the current action for exact flags and paths rather than hardcoding versions. For the main repository, its libraries include the checked checkout's `DBM-Core`, `DBM-StatusBarTimers`, and `DBM-Test`, plus the action-selected WoW API `Annotations`; `Check-Config.lua` adds DBM's Definitions and plugin. Resolve local paths without changing tracked configuration merely for the check.
+- Run the full check at the repository root, not an isolated source subfolder that loses configuration/type context. Use the action's diagnostic threshold (currently `--checklevel Information`) and inspect the diagnostic output, not just the process exit code. Do not filter away diagnostic categories and describe the remainder as a clean pass. Focused editor diagnostics do not establish a full CI pass.
+- For either validation scope, missing libraries/plugin or widespread undefined API/type diagnostics invalidate the setup; fix the setup or report the blocker instead of treating those results as a successful type check.
+- For frames created with templates, declare the actual frame/template composition when inference is insufficient, following nearby typed-frame declarations. Resolve receiver/mixin mismatches with accurate types, not broad suppressions or `any`. After a CI diagnostic, reproduce it locally with the CI-equivalent command before the fix when practical, then rerun that command after the fix.
+
+## Feature efficiency and lifecycle
+
+- Features must be zero cost unless enabled. A user who never enables a new setting must incur no feature-specific event registrations, hooks doing work, `OnUpdate` handlers, tickers, or background processing. An inert event frame may be created at load, provided it has no registered events and does no work while off; build everything else lazily on first enable.
+- Register feature events only while the feature is active. Disabling/deactivating it must unregister its events, cancel owned timers/tickers/scheduled callbacks, and stop ongoing work. Do not leave an always-running handler or hook that merely checks the setting on every invocation; preserve unrelated owners when cleaning up shared infrastructure.
+- Enabled features must remain low cost: use event-driven updates, not `OnUpdate` polling; do not use wall-clock timers as logic gates; avoid per-frame table allocations in hot paths and keep loops small and bounded.
+- If the feature genuinely requires an exception, such as per-frame bar animation, stop before implementing that exception and ask the user to choose between concrete approaches. Explain why it is necessary, the runtime/lifecycle costs and tradeoffs, and the recommended approach. Do not silently waive these rules or remove intended behavior to meet them.
+- Validate both never-enabled and enable/disable/re-enable paths. Verify no feature work while off, no duplicate registrations or callbacks after re-enable, and no stale callback restarting work after disable. Exercise callbacks in tests rather than relying on no-op scheduler mocks.
+
+## Secret-safe APIs
+
+- During restricted encounter logic, public boss unit tokens such as `"boss1"`/`"boss2"` may be used with `UnitExists`, and its presence result may drive logic. Do not reject this permitted check merely because the occupying unit has secret identity.
+- Boss-slot presence is not occupant identity. Do not fetch, compare, parse, or identify the occupant through `UnitGUID`, `DBM:GetCIDFromGUID`, or equivalent identity-inspecting helpers for restricted module decisions. Check helper internals; a public input token does not make every operation on its occupant safe. This is not a blanket ban on existing Classic/core APIs or legal display-only sinks.
+- `UnitThreatSituation` permits supported direct-token threat-state queries even when the enemy's identity is secret, such as player-versus-boss threat. Reuse [`IsTanking`](../../DBM-Retail/DBM-Core/DBM-Core.lua), which already distinguishes Retail and Forever threat-state checks from detailed threat values and identity-dependent fallbacks. Do not reject this path merely because the enemy is a secret unit, substitute `UnitDetailedThreatSituation`, or enable GUID/name resolution to perform it. Preserve precise requested-unit checks where required by the encounter.
+- `UnitIsUnit("target", unit)` may compare the player's target with a public direct unit token whose occupant has secret identity, as in [DevTools target-row suppression](../../DBM-Retail/DBM-Core/modules/DevTools.lua). This permitted token comparison is not GUID/name identity inspection. Do not generalize it to arbitrary token pairs or compound tokens such as `"boss1target"`; comparison secrecy has its own API predicate, distinct from unit-identity secrecy.
+- For target-class coloring, nil-check `UnitSpellTargetClass` and pass its token directly to `C_ClassColor.GetClassColor`, then `WrapTextInColorCode` through the existing warning helper. Do not reject it with `issecretvalue`, compare class names, index/cache it in Lua tables, or inspect the secret token.
+- `IsItemInRange` permits secret units. Preserve restricted `CheckBossDistance`'s direct-unit path without identity/CID/GUID inspection or tank-distance fallback.
+
+### API evidence sources
+
+- Use Blizzard UI source mirrored at [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source) as the authoritative source for documented API contracts and native UI usage. Search `Interface/AddOns/Blizzard_APIDocumentationGenerated` for the exact function/event and inspect relevant implementation code. Select the branch/build matching the client being targeted; `live`, PTR, and beta are not interchangeable.
+- [Warcraft Wiki: Secret Values](https://warcraft.wiki.gg/wiki/Secret_Values) provides supporting guidance on secret arguments, returns, predicates, and restrictions. Check each API's actual contract rather than inferring permission from another API or from the unit token alone.
+- Use [Warcraft Wiki: TOC format](https://warcraft.wiki.gg/wiki/TOC_format) as the authoritative reference when understanding, creating, or editing `.toc` files, including metadata directives, dependencies, and client-specific behavior. Check applicability to the targeted client/version. `plunderstorm`, `wowhack`, and `wowlabs` do not support addons and are listed there for completeness only; never define these game types in DBM `.toc` files.
+- Distinguish permission to call an API from permission to branch on its result. Check conditional return-secrecy and token-comparability rules, not just `SecretArguments`. In particular, threat-state, detailed threat-value, unit-comparison, and unit-identity predicates are separate contracts. Source review and mocks do not establish live-client validation.
+
+## Range calibration evidence
+
+- Distinguish item availability, measured API range boundaries, and mocked code correctness. Added-in-patch metadata establishes availability, not `IsItemInRange` boundaries on that client. Tooltip range alone does not override measured API behavior; mocked regressions are not in-game calibration.
+- Wrath inherits calibrated TBC mappings and MoP-calibrated extensions, but those boundaries remain provisional on Wrath until measured there. Recorded extensions are `6=42732`, `73=41265`, `83=35278`, `103=41058`, and `153=46954`; the sorted Wrath list has 16 buckets capped at 153.
+- Preserve TBC's distinct `11=34368` and `43=34255` mappings. Eyesore Blaster's recorded Wrath tooltip says 95 yards, while its inherited MoP-calibrated bucket is 73 nominal plus 3; keep this discrepancy explicit rather than calling Wrath calibrated.
+- These are recorded evidence limits, not claims about current client availability. Cataclysm remained legacy/unchanged in that work; do not extend the Wrath conclusions to it.
+
+## Wipe-health cache semantics
+
+- Preserve Classic/TBC's lowest-seen cached boss health by default: a despawn/respawn before `ENCOUNTER_END` must not overwrite wipe progress with 100%.
+- Explicit `onlyHighest`/`highesthealth` consumers retain their highest-seen semantics; do not apply the default minimum policy to them.
+
+## Meaningful guards only
+
+- Do not repeat unit checks in handlers already registered for that unit, or add `badStateDetected` checks to handlers already unregistered on fallback. Preserve necessary timing, stage, and availability guards; omit unused parameters.
+
+## Core refactors
+
+- Preserve critical/update-message calls through the cached original `AddMsg` rather than the hookable public method. When extracting code, retain equivalent original-call semantics.
+- Audit source and destination file-scope locals/upvalues and remove bindings proven unused before syntax/LuaLS checks.
+
+## Localization
+
+- Add new display localization keys across all supported locale files in the same change, not English-only.
+- Do not automatically translate strings used to match or partially match game-client text, including `CHAT_MSG*` triggers and yell-based combat detection. These parsing strings require verified text from the relevant client/locale, not a translation of the English string. Preserve existing verified triggers; if localized trigger text is unavailable, report that limitation rather than inventing a match. Automatic translation is for text DBM displays, not text DBM parses. This does not permit inspecting secret message payloads; follow the [routing rules](dbm-timeline-routing.instructions.md).
+
+## Agent tooling
+
+- Put agent-only scripts/replay runners in workspace-root `Agent Tools/`, outside addon repositories unless explicitly requested. Run them from the workspace root with quoted paths.
+- Prefer ad hoc checks when a reusable runner adds little value.
+
+## Mythic+ scope
+
+- For features asking whether a Mythic+ run is encounter-active, difficulty 8 represents a dungeon-wide encounter; do not additionally require boss `InCombat()`. This is not a blanket instruction to return true from unrelated difficulty-8 functions.

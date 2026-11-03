@@ -1,0 +1,43 @@
+---
+name: DBM Secret-Safe Warnings
+description: "Use when changing Announce or SpecialWarning rendering, secret target helpers, CombinedShow or PreciseShow scheduling, warning slots/chat/notes, or AddSecretGenericWarning and its callers."
+---
+
+# DBM Secret-Safe Warnings
+
+## Stateless rendering
+
+- Preserve automatic per-call secret detection in both warning families before materializing argument tables. Forced-secret target helpers use explicit per-call dispatch, not ambient `secretShowConsuming`/`secretAnnounceConsuming` flags. Nested calls or errors must not poison later warnings.
+- Reuse the existing localized public template through `StringUtils.secretFormat` and native formatting. Sanitize only public placeholder name wrappers; never parse secret arguments or formatted output, globally strip angle brackets, or add a matrix of per-type secret localization templates.
+- Preserve positional/numeric directives, escaped percents, custom text, construction-time metadata, renames, and ordinary nonsecret behavior. Keep public `Show` scheduler identity and independent Blizzard interception/audio semantics.
+- Preserve secret target helper semantics: the first argument is the target, not a generic count. Do not introduce protected formatting wrappers as a substitute for eliminating shared mode state.
+
+## Metadata, notes, and display sinks
+
+- Public counts retain notes/callback behavior when another argument is secret. Check the count's secrecy before parsing, truth tests, or indexing; `interruptcount` uses argument two. Secret counts remain display-only, with no indexed-note selection or exposed callback/diagnostic count metadata.
+- Preserve GTFO defaults for truly missing/nonsecret inputs, zero-argument and custom warnings, role filters, note-name filters, voice, sound, and flashes. Secret arguments must not enter aggregation sorting/replacement.
+- Preserve opaque native formatting through prefix, note, icon, chat, and `AddMsg` boundaries. Do not use `tostring`, `gsub`, or chat-icon stripping on secret rendered output; compose from public layout and opaque values.
+- Track slot secrecy independently of custom-icon presence. Overflow must not read secret FontString contents for rotation; retain safe replacement and normal public rotation without dropping the new warning or duplicating icons, sounds, or chat.
+- Do not expose secret metadata through new callbacks. Existing opaque rendered-text passthrough does not authorize deriving public metadata from it.
+
+## Aggregation and scheduler ownership
+
+- Secret `CombinedShow`/`PreciseShow` calls bypass aggregation and show immediately. First unschedule the pending `Show` for exactly that warning object and mod. Preserve this at all four entry points across Announce and SpecialWarning.
+- Preserve ordinary aggregation buffers and lifecycle cleanup. A public-to-secret transition must not leave a stale delayed emission, cancel unrelated objects/mods, or change normal aggregation behavior.
+- Scheduler regressions must enqueue and execute callbacks, not use a no-op scheduler. Cover all public/secret CombinedShow/PreciseShow combinations and unaffected owners.
+
+## Shared generic display helper
+
+- Reuse `DBM:AddSecretGenericWarning(unit, spellID, color, useSound, showTargets)` for generic secret cast display rather than duplicating rendering or making boss mods depend on GenericTrash.
+- Defaults are color 3, sound true, and targets true; preserve explicit false. Callers own options, registrations, eligibility, encounter timing, filtering, throttling, and sound policy.
+- The helper owns only display-safe spell/texture lookups, public-nil fallbacks, public warning-color wrapping, optional target/class coloring, common localized `spell: target` formatting, and `AddWarning` dispatch. Preserve global filters, chat preferences, slot replacement, and direct class-color API usage.
+- Never cache, parse, rename, compare, or deduplicate secret spell/target metadata, inspect cast identity, or add callbacks exposing it. Passing a secret spell ID directly to the display lookup is not permission to route on it.
+
+## Accepted implementation and regression coverage
+
+- Final accepted status: the user confirmed secret-safe warnings work correctly. Preserve the universal/stateless implementation and all four scheduler fixes; there is no outstanding warning-rendering defect or rollback task from this work.
+- Preserve Lost Explorers Shell Spin followed by ordinary Icebound count as a core regression, plus nested calls/errors, public/secret counts, GTFO/custom warnings, locale templates, notes, overflow, chat icons, filters, and Blizzard interception/audio.
+- The saved final suite reported 791 desktop mock cases across ten locale overlays. These are prior results, not tests rerun during consolidation. For future rendering changes, desktop mocks alone cannot certify actual WoW secret numeric/positional formatting or UI/chat sinks; validate affected behavior in game.
+- Preserve `/dbm test` and GUI warning/timer/alert previews. Use actual core implementations in runners where practical; keep agent-only tooling outside addon repositories.
+
+Historical provenance: completed stateless warning and generic-helper implementation notes; implementation inspected and final accepted status clarified during consolidation on 2026-10-20. Private session plans and prior test outputs are not bundled. Preserve the accepted behavior, but obtain or reconstruct compatible regression coverage before claiming new validation.

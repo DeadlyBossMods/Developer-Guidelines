@@ -1,0 +1,35 @@
+---
+name: DBM Hardcoded Conversions
+description: "Use when converting standard DBM dungeon or raid modules from custom Blizzard timeline/alert options to hardcoded timers and warnings, mapping constructor arguments, or preserving compatibility branches."
+---
+
+# DBM Hardcoded Conversion Conventions
+
+Use the [timeline evidence and routing rules](dbm-timeline-routing.instructions.md) and [helper and alert rules](dbm-timeline-helpers.instructions.md) alongside these conversion conventions.
+
+## Reference and scope
+
+- Use [ArcanotronCustos](../../DBM-Dungeons/DBM-Party-Midnight/MagistersTerrace/ArcanotronCustos.lua) as the layout/reference for straightforward dungeon conversions, not as an authority to copy every guard, routing exception, or tank check. Apply the approved evidence, helper, and alert rules. Dungeon and raid hardcoding use the same evidence/replay standards unless explicitly documented otherwise.
+- For verified routable timeline abilities, replace custom timer options with `NewCDCountTimer` and the corresponding custom alert path with `NewSpecialWarningCount` as appropriate. The hardcoded warning object's `SetAlert` owns fallback registration; do not keep/add a duplicate `AddCustomAlertSoundOption` for that same warning. Preserve role/default settings and relevant option behavior rather than doing a blind constructor substitution.
+- If an ability has `ENCOUNTER_WARNING` but no verified routable timeline event, keep its existing custom alert option/registration. Do not invent a hardcoded warning or timer merely to eliminate a custom option. Preserve existing aura sounds. A routable timer lacking a warning gets `NewCountAnnounce` only when no aura sound already supplies the notification.
+
+## Constructor mappings
+
+Arguments below are counted after the colon, excluding `self`. Check current wrapper signatures before applying mappings to a different warning type.
+
+| Source | Destination |
+|---|---|
+| `AddCustomTimerOptions` spellId, argument 1 | `NewCDCountTimer` argument 2 |
+| `AddCustomTimerOptions` bar color, argument 3 | `NewCDCountTimer` argument 6 |
+| `AddCustomAlertSoundOption` spellId, argument 1 | `NewSpecialWarningCount` argument 1 |
+| `AddCustomAlertSoundOption` defaultSound, argument 3 | `NewSpecialWarningCount` argument 5 |
+| `EnableAlertOptions` voice version, argument 4 | `NewSpecialWarningCount` argument 6 |
+| `EnableAlertOptions` voice token, argument 3 | The ordinary warning's `Play` token |
+
+The [BlizzYou/BlizzTarget interception exception](dbm-timeline-helpers.instructions.md) still applies: no extra `Play` there.
+
+## Missing evidence and implementation boundaries
+
+- For timers/warnings without direct timeline evidence, leave a short review note stating that evidence is missing, not claiming the ability was removed. Identify verified derived timing separately. Missing filtered-cache evidence alone is not proof of absence; follow the [OCR evidence-boundary rule](dbm-log-ocr.instructions.md).
+- Keep conversions simple: avoid one-off `TLStart` wrappers unless they remove meaningful duplication, and do not import complex raid patterns without evidence. Once the reference, target, and required complete audited pull evidence are available, act instead of broadly rescanning. Additional cross-corpus validation remains governed by the routing rules.
+- Preserve existing restricted/nonrestricted or version-compatibility branches and their intended gating. Confine a hardcoded conversion to the relevant branch; do not mechanically replace the current gate with the historical `IsPostMidnight` example or change the other branch without a request. When multiple backup paths set a stage, guard against duplicate or backward stage transitions.

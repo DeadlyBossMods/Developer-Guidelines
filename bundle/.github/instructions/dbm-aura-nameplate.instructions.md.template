@@ -1,0 +1,46 @@
+---
+name: DBM Auras and Nameplate Compatibility
+description: "Use when changing DBM native harmful-aura tracking, duration formatters or previews, aura glows or sounds, adopting external addon patterns such as NST, or maintaining Mainline nameplate stubs and Classic rendering."
+---
+
+# DBM Auras and Nameplate Compatibility
+
+## Nameplate compatibility
+
+- Preserve the client-specific TOC split: Classic loads the renderer; Mainline loads `DBM-Nameplate-Mainline.lua`. The Mainline compatibility surface must remain callable without renderer frame creation or renderer callback registration.
+- Preserve `Show`, `Hide`, `IsShown`, `UpdateIconOptions`, `ValidateFontSettings`, and `DBM.PauseTestTimer`; Mainline `IsShown` returns false.
+- Preserve module-facing `AddNamePlateOption`/`AddNamePlateLine`, saved settings, localization, and Classic rendering and third-party handoff behavior. Do not zero defaults or edit legacy modules merely because Mainline does not render nameplates.
+- The old migration analysis predates the implemented split. Its per-client TOC filenames, removal checklist, usage counts, and speculative deprecation schedule are historical research, not new assignments.
+
+## Native aura lifecycle
+
+- Preserve full container refreshes, `ShouldAurasBeSecret`, the deferred anchor-update queue, native duration bindings, and native preview machinery. Do not replace native previews with a Lua countdown ticker.
+- Source comparisons establish observed implementation patterns, not permission to change DBM's refresh architecture. A targeted-refresh redesign requires direct API/runtime evidence and separate agreement; do not infer that targeted setters are either safe or universally forbidden.
+- Preserve manual roster selection, co-tank slots and recipient labels, healer substitution, and existing visibility/default behavior when adapting external patterns. A different layout direction is not itself a defect.
+
+## Formatter and cache contracts
+
+- The formatter-only cleanup is implemented. Share formatter construction between live and preview paths; cache by stable option prefix and effective clamped decimal settings, not fresh settings-table identity.
+- Replace cached formatter objects rather than mutating objects already attached to bindings. Preserve player/co-tank independence, blank-at-expiry behavior, breakpoint ordering, rounding, and native live/preview parity. Minute formatting is a separate behavioral choice, not an implicit cleanup.
+- GUI RGB tables can be edited in place. Any future color caching must compare scalar components or explicitly invalidate; table identity alone is insufficient. Preserve per-binding curve ownership and rebuild timing unless API object reuse is verified and a change is separately selected.
+- Validate formatter changes around zero/expiry, decimal thresholds, and 59.9/60/60.1 seconds; check fresh settings snapshots, prefix isolation, effective-setting invalidation, and old-object immutability. Mocked construction checks do not certify native output or in-game taint behavior.
+
+## Harmful-icon glow
+
+- Player/co-tank harmful-icon glow is implemented with separate off-by-default settings. Preserve old-client behavior and the existing harmful-icon scope; helpful displays, raid-frame glows, new tracking groups, and caster-name expansion are not implicitly authorized.
+- Fully construct native animation groups and descendant targets before `AddAuraShownAnimation` adoption. Preserve native ownership restrictions; do not treat Lua-driven LibCustomGlow effects as interchangeable registered animations.
+- Blizzard owns live playback; previews simulate playback separately. Preserve explicit stopping and unregistration when disabled/reconfigured, plus aura removal, pooled-button reuse, container teardown, preview limit reduction/timeout/toggle-off, and secrecy-deferred settings behavior. Clearing an animation registry alone is not proof playback stopped.
+- The 2026-10-07 source review did not establish a supported arbitrary expiration-threshold glow path. Aura-shown animations are presence-based; pandemic APIs describe refresh windows, not a general N-second debuff threshold.
+- Do not inspect private live duration state, poll an external configuration binding as if it held Blizzard's private live duration, parse secret text/colors, or invent timers from assumed aura durations. This is a recorded evidence limit, not proof future public APIs cannot support thresholds; reverify client/version-specific contracts before extending behavior.
+
+## Native filters and aura sounds
+
+- Broad native aura filters do not prove exact spell identity. An option/icon/name spell ID does not establish spell-specific tracking for restricted harmful auras. Do not import NST encounter predicates as verified DBM mechanic mappings without encounter evidence.
+- Preserve the implemented two-argument `AddAuraSound(trigger, soundInfo)` call. On supported clients, `throttleSeconds` belongs inside `soundInfo`; omit that field on older clients. Preserve DBM's default 3, explicit 0, media selection, pending registrations, and combat restrictions.
+- The reviewed 12.1.5 API documented throttle values in inclusive range 0..5. Recheck the current contract and callers before selecting any new input policy; the old plan's proposed clamping is not an approved implementation requirement.
+
+## Research status and verification
+
+- The saved NST plan's later notes establish completed formatter work, but its unimplemented-glow and pending sound-call descriptions are superseded by current code. Source presence alone does not establish live validation.
+- Optional display controls, vehicle/restriction-end retries, template changes, max-duration policy, caster names, and raid-wide glows remain historical research, not standing implementation tasks. Recheck current source and obtain scope agreement before pursuing them.
+- The original comparison used NST and Blizzard `ptr2` 12.1.5 sources; do not substitute a stale branch or apply that version's conclusions unconditionally. Preserve completed work and distinguish saved test results, new checks, and actual in-game verification.
