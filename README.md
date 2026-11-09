@@ -61,6 +61,10 @@ inside an addon that already inherits the parent workspace's guidance.
 
 ## Install
 
+The full installation below targets DBM work. For other projects, use the
+scope-aware setup request below to select and adapt relevant guidance instead
+of copying the entire bundle.
+
 1. Clone or download this repository into the development workspace.
 2. Inspect existing workspace and user instructions. If guidance is already
    installed, follow **Updating** below instead of overwriting it.
@@ -83,22 +87,49 @@ No installer, background updater, or automatic overwrite is included.
 ### Copyable agent setup request
 
 ```text
-Set up DBM developer guidance from the local Developer-Guidelines repository.
+Set up developer guidance from the local Developer-Guidelines repository.
 Treat its bundle as installation templates, not a second active policy.
-First identify the parent development workspace and inspect existing instructions
-and tooling. If there is already an active instruction set, compare it and ask
-before replacing or merging conflicting content; do not install duplicates.
-Otherwise copy bundle/.github into the parent's .github, removing only trailing
-.template suffixes, and copy bundle/Agent Tools/ocr_logs.py into its Agent Tools.
-Keep personal configuration and addon repositories untouched. Resolve checkout
-examples against my actual workspace layout. Verify all nine topics, entry-point
-links, and OCR tooling, then tell me how to verify instruction discovery in my
-agent. Do not commit, push, or change agent settings without approval.
+
+First identify the target project, development workspace, and existing
+instructions and tooling. Determine whether this is DBM development or
+another project; ask if the intended scope is unclear.
+
+For DBM development, install the applicable DBM guidance and required tooling.
+
+For other projects, selectively adapt only guidance relevant to that project.
+Do not assume all WoW addons use DBM's architecture, APIs, helpers, testing
+infrastructure, or development workflows. Exclude DBM-specific module,
+encounter, timeline, and historical implementation instructions unless the
+project actually uses them. Exclude screenshot OCR guidance and tooling unless
+that workflow is explicitly wanted.
+
+Retain applicable general principles, such as efficient feature lifecycles,
+matching surrounding code, evidence-based API usage, secret-safe handling,
+localization boundaries, and validation appropriate to the target project.
+Adapt project-specific examples only when a verified equivalent exists;
+otherwise omit them rather than inventing replacements.
+
+Before making changes, summarize what you propose to retain, adapt, and omit,
+and obtain approval for the scope.
+
+Inspect existing instructions before installation. Compare and ask before
+replacing or merging conflicting content; do not install duplicates.
+Install only the approved templates, removing trailing .template suffixes.
+Update the installed entry point and cross-references so they describe only
+included guidance, with no dangling links or requirements for omitted tools.
+
+Preserve personal configuration and project source code. Resolve paths against
+the actual workspace layout. Verify the selected files, links, and required
+tooling, then explain how to verify instruction discovery in my agent.
+
+Do not modify the source distribution bundle, commit, push, or change agent
+settings without approval.
 ```
 
 ## Verify instruction discovery
 
-Start a new conversation in the development workspace and ask:
+For a full DBM installation, start a new conversation in the development
+workspace and ask:
 
 ```text
 Without changing files, identify the active DBM workspace instruction entry point.
@@ -111,6 +142,10 @@ Confirm that the agent reports the **installed** entry point and topics, the ban
 on inventing translated client-text triggers, and the canonical three-pass OCR
 command. Check the agent's instruction-loading diagnostics where available;
 correct answers alone do not prove automatic discovery.
+
+For an adapted installation, verify the installed entry point and selected
+topics instead. Test a relevant retained rule and confirm that omitted DBM/OCR
+workflows are not required by the installed guidance.
 
 File-based guidance is not deterministic enforcement. This package includes no
 lifecycle hooks, and does not claim identical discovery behavior across agents.
