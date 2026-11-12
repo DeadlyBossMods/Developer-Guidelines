@@ -1,5 +1,6 @@
 local frames, fontLoads, messages = {}, 0, {}
 local failFont = false
+local registeredFonts, fontObjects = {}, 0
 local Frame = {}
 Frame.__index = Frame
 
@@ -18,14 +19,26 @@ end
 function Frame:SetScript(name, callback) self.scripts[name] = callback end
 function Frame:SetText(text) self.text = text end
 function Frame:SetFont(path, size)
+	if path == "Fonts\\FRIZQT__.TTF" then
+		self.binary = false
+		self.fontSize = size
+		self.explicitFont = true
+		return true
+	end
 	assert(path == "Interface\\AddOns\\DBM-Core\\fonts\\DBMBinary.ttf")
 	fontLoads = fontLoads + 1
-	if failFont then return false end
+	if failFont or not registeredFonts[path] or not self.fontObject then return false end
 	self.binary = true
 	self.fontSize = size
+	self.explicitFont = true
 	return true
 end
-function Frame:SetFontObject() self.binary = false end
+function Frame:SetFontObject(font)
+	self.fontObject = font
+	if not self.explicitFont then
+		self.binary = font and font.fontSize ~= nil
+	end
+end
 function Frame:Show() self.shown = true end
 function Frame:Hide() self.shown = false end
 function Frame:IsShown() return self.shown end
@@ -44,7 +57,9 @@ for _, method in ipairs({
 end
 
 UIParent = setmetatable({width = 1920, height = 1080}, Frame)
-GameFontHighlightSmall = {}
+GameFontHighlightSmall = {
+	GetFont = function() return "Fonts\\FRIZQT__.TTF", 10, "" end,
+}
 DBM_CORE_L = {
 	DEBUG_LOG_BINARY = "Binary capture font",
 	DEBUG_LOG_TEXT = "Human-readable font",
@@ -54,6 +69,17 @@ function CreateFrame(_, _, parent)
 	local frame = setmetatable({parent = parent, points = {}, scripts = {}}, Frame)
 	frames[#frames + 1] = frame
 	return frame
+end
+function CreateFont(name)
+	assert(name == "DBMDebugLogBinaryFont")
+	fontObjects = fontObjects + 1
+	assert(fontObjects == 1, "Reuse the binary font object across toggles and scale changes")
+	return {
+		SetFont = function(self, path, size)
+			registeredFonts[path] = true
+			self.fontSize = size
+		end,
+	}
 end
 function GetTime() return 100 end
 function InCombatLockdown() return true end
@@ -68,15 +94,22 @@ function module:RegisterShortTermEvents() end
 function module:UnregisterShortTermEvents() end
 assert(loadfile("DBM-Retail/DBM-Core/modules/DevTools.lua"))("DBM-Core", private)
 module:OnModuleLoad()
-assert(#frames == 0 and fontLoads == 0, "Disabled debug creates no capture frames/fonts")
+assert(#frames == 0 and fontLoads == 0 and fontObjects == 0, "Disabled debug creates no capture frames/fonts")
 
 DBM.Options.DebugMode = true
+if arg[1] == "--saved" then
+	DBM.Options.DebugLogBinaryFont = true
+	module:OnDebugToggle()
+	assert(fontObjects == 1 and fontLoads > 0, "Saved binary selection registers before creating rows")
+	print("Saved binary font initialization passed")
+	return
+end
 module:OnDebugToggle()
 DBM:ToggleDebugLog()
 for i = 1, 120 do
 	DBM:Debug("record " .. i, 4, nil, nil, true, true)
 end
-assert(fontLoads == 0, "Never-enabled binary font must not load")
+assert(fontLoads == 0 and fontObjects == 0, "Never-enabled binary font must not load")
 local function button(text)
 	for _, frame in ipairs(frames) do
 		if not frame.fontString and frame.text == text then return frame end
@@ -95,8 +128,11 @@ local function visibleRecords()
 	return records
 end
 local textRows = #visibleRecords()
+local debugFrame = frames[1]
+local originalWidth, originalHeight = debugFrame.width, debugFrame.height
 click("Binary capture font")
-assert(DBM.Options.DebugLogBinaryFont and fontLoads > 0)
+assert(DBM.Options.DebugLogBinaryFont and fontLoads > 0 and fontObjects == 1)
+assert(debugFrame.width == originalWidth and debugFrame.height == originalHeight, "Font toggle preserves window size")
 local records = visibleRecords()
 assert(#records > 0 and #records < textRows, "Header reserves room without clipping")
 for _, record in ipairs(records) do
@@ -117,6 +153,12 @@ assert(tonumber(previous[1]:match("record (%d+)")) == first - #records, "Pages h
 click("Human-readable font")
 assert(not DBM.Options.DebugLogBinaryFont and not header.shown)
 for _, record in ipairs(visibleRecords()) do assert(record:match("^record %d+$")) end
+for _, frame in ipairs(frames) do
+	if frame.fontString and frame.shown and frame.text and frame.text:find("^record ") then
+		assert(not frame.binary and frame.fontSize == 10, "Restore explicit human font overrides")
+	end
+end
+assert(debugFrame.width == originalWidth and debugFrame.height == originalHeight, "Restoring text preserves window size")
 
 failFont = true
 click("Binary capture font")

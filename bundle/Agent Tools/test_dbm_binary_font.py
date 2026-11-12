@@ -58,6 +58,15 @@ class CodeTests(unittest.TestCase):
             binary.build_font(output)
             self.assertEqual(output.read_bytes(), FONT.read_bytes())
 
+    def test_font_declares_latin_regular_unrestricted_metadata(self):
+        from fontTools.ttLib import TTFont
+        with TTFont(FONT) as font:
+            metadata = font["OS/2"]
+            self.assertEqual(metadata.ulCodePageRange1, 1)
+            self.assertEqual(metadata.ulCodePageRange2, 0)
+            self.assertEqual(metadata.fsSelection, 0x40)
+            self.assertEqual(metadata.fsType, 0)
+
 
 class RasterTests(unittest.TestCase):
     def setUp(self):
@@ -79,6 +88,28 @@ class RasterTests(unittest.TestCase):
                 jpeg = self.path.with_suffix(".jpg")
                 image.save(jpeg, quality=90)
                 self.assertEqual(binary.decode_image(jpeg, required=True), [EVENT])
+
+    def test_one_pixel_locator_edge_loss_in_colored_span(self):
+        image = render(self.path, [EVENT])
+        draw = ImageDraw.Draw(image)
+        # Only the middle span's locator tops cross the highest threshold.
+        # Data cells remain untouched; prefix/suffix retain the shared baseline.
+        for index in range(len(binary.START), len(binary.START) + len(EVENT)):
+            x = 20 + index * 16
+            draw.rectangle((x, 56, x + 1, 56), fill=(150, 150, 150))
+        image.save(self.path)
+        with Image.open(self.path) as source:
+            body_rails = [rail for rail in binary._rails(source, 160) if rail.top >= 56]
+            self.assertEqual({rail.top for rail in body_rails}, {56, 57})
+            for threshold in (96, 128, 160):
+                with self.subTest(threshold=threshold):
+                    self.assertEqual(
+                        binary._decode_threshold(source, threshold, required=True),
+                        [f"{binary.PAGE_HEADER}1", EVENT],
+                    )
+        self.assertEqual(binary.decode_image(self.path, required=True), [EVENT])
+        output = ocr_logs.ocr_folder(str(self.path.parent), capture_format="binary")
+        self.assertIn(EVENT, output)
 
     def test_wrong_font_and_empty_capture(self):
         image = Image.new("RGB", (800, 100), "black")

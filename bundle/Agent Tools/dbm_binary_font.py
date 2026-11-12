@@ -82,7 +82,8 @@ def build_font(destination: Path) -> None:
         "copyright": "Original geometric font. Distributed under the DBM project license.",
     })
     builder.setupOS2(sTypoAscender=900, sTypoDescender=-300, sTypoLineGap=0,
-                     usWinAscent=900, usWinDescent=300)
+                     usWinAscent=900, usWinDescent=300, fsSelection=0x40,
+                     fsType=0, ulCodePageRange1=1, ulCodePageRange2=0)
     builder.setupPost()
     builder.setupMaxp()
     # Stable OpenType timestamps make regeneration reproducible.
@@ -178,8 +179,16 @@ def _decode_threshold(image, threshold: int, required: bool) -> list[str] | None
     pixels = ImageChops.lighter(ImageChops.lighter(red, green), blue).load()
     width, height = image.size
     groups: dict[tuple[int, int], list[Rail]] = {}
-    for rail in _rails(image, threshold):
-        groups.setdefault((rail.top, rail.height), []).append(rail)
+    for rail in sorted(_rails(image, threshold), key=lambda rail: (rail.top, -rail.height, rail.x)):
+        key = next(
+            (key for key in groups
+             if abs(rail.top - key[0]) <= 1
+             and abs(rail.top + rail.height - key[0] - key[1]) <= 1),
+            (rail.top, rail.height),
+        )
+        # Colored antialiased rails can lose one edge pixel at a higher threshold.
+        # Keep the row's shared geometry; do not shift data-cell sampling per glyph.
+        groups.setdefault(key, []).append(rail)
     lines: list[tuple[int, str]] = []
     suspicious = False
     for (top, bar_height), rails in sorted(groups.items()):
