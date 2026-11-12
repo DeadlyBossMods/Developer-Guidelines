@@ -10,6 +10,10 @@ DB2 scaffolding, timeline routing, and screenshot-log analysis.
 - [Nine topic templates](bundle/.github/instructions/), loaded through the entry
   point's task-specific links rather than putting every rule in every request.
 - [Canonical three-pass OCR pipeline](<bundle/Agent Tools/ocr_logs.py>).
+- [Binary capture decoder/font generator](<bundle/Agent Tools/dbm_binary_font.py>),
+  [regression tests](<bundle/Agent Tools/test_dbm_binary_font.py>), and
+  [Python dependencies](<bundle/Agent Tools/requirements-ocr.txt>).
+- [Debug viewer lifecycle check](<bundle/Agent Tools/debug_binary_font_check.lua>).
 
 The bundle preserves the existing DBM rules, with portability edits for workspace
 layout, personal configuration, and historical provenance. Personal instructions,
@@ -44,6 +48,10 @@ DBM Workspace/
       ...eight other topic files...
   Agent Tools/
     ocr_logs.py
+    dbm_binary_font.py
+    test_dbm_binary_font.py
+    debug_binary_font_check.lua
+    requirements-ocr.txt
   DBM-Retail/            # checkout of DeadlyBossMods/DeadlyBossMods
   DBM-Dungeons/          # dungeon checkout, when needed
   Developer-Guidelines/  # this repository; distribution source only
@@ -74,7 +82,8 @@ of copying the entire bundle.
      `.github/copilot-instructions.md`.
    - `bundle/.github/instructions/*.instructions.md.template` become
      `.github/instructions/*.instructions.md`.
-   - `bundle/Agent Tools/ocr_logs.py` becomes `Agent Tools/ocr_logs.py`, unchanged.
+   - Copy all files from `bundle/Agent Tools/` into `Agent Tools/`, unchanged.
+     Keep the binary decoder beside the OCR entry point.
 4. Preserve existing settings, personal instructions, and agent-specific loaders.
    Reconcile conflicting guidance with the developer rather than silently
    replacing it. Do not create a duplicate full-policy `AGENTS.md` or user-level
@@ -83,6 +92,39 @@ of copying the entire bundle.
 5. Verify discovery in a new agent conversation as described below.
 
 No installer, background updater, or automatic overwrite is included.
+
+### OCR dependencies and binary captures
+
+Use an existing Python environment or create one in the workspace:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r "Agent Tools/requirements-ocr.txt"
+.venv/bin/python "Agent Tools/ocr_logs.py" --folder "<pull-folder>"
+```
+
+Tesseract with English language data remains an external prerequisite for text
+captures. The default `auto` mode detects the optional DBM Binary v1 font per
+image, so text and binary screenshots may share a pull folder. For known binary
+captures add `--capture-format binary` to reject even completely unreadable
+pages; `--capture-format text` forces the original Tesseract-only path.
+
+Binary pages must include their page header and every complete row. Decoding
+requires three pixel thresholds to agree and checks framing, parity, and the
+page row count before writing logs. Damaged captures fail explicitly; verified
+binary text is not subjected to English spelling/timestamp repair heuristics.
+Existing canonical caches are still preserved unless `--force` is requested.
+The feature is ASCII-only and experimental until verified in game; font scaling
+and screenshot resampling can invalidate cells. See the OCR topic for evidence
+and review requirements.
+
+The regression tests expect the recommended sibling `DBM-Retail` checkout with
+its bundled `DBM-Core/fonts/DBMBinary.ttf`. Run them from the workspace:
+
+```sh
+.venv/bin/python "Agent Tools/test_dbm_binary_font.py"
+lua "Agent Tools/debug_binary_font_check.lua"
+```
 
 ### Copyable agent setup request
 

@@ -25,7 +25,9 @@ import glob
 import sys
 import re
 import math
+import argparse
 from collections import Counter, defaultdict
+from dbm_binary_font import BinaryDecodeError, decode_image
 
 LOG_ROOTS = (
     "12.0 Logs",
@@ -49,6 +51,7 @@ RELEVANT_PATTERNS = (
 LOG_FILENAME = "log.txt"
 OCR_ISSUES_FILENAME = "ocr_issues.txt"
 LOG_VARIANT_FILENAMES = ("log1.txt", "log2.txt", "log3.txt")
+BINARY_CACHE_MARKER = "# DBM capture: binary-v1"
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg")
 
 # Strict 3-pass OCR consensus (persisted as log1/log2/log3).
@@ -1010,7 +1013,10 @@ def _prefer_spell_id_from_aligned_candidates(chosen_line: str, candidates: list[
     return _replace_spell_id_token(chosen_line, best_id)
 
 
-def _ocr_folder_pass(folder: str, tesseract_args: tuple[str, ...]) -> list[tuple[str, list[str]]]:
+def _ocr_folder_pass(
+    folder: str, tesseract_args: tuple[str, ...],
+    binary_pages: dict[str, list[str]] | None = None,
+) -> list[tuple[str, list[str]]]:
     """Run a single OCR pass and return relevant lines grouped by source PNG filename."""
     pngs = sorted(
         [f for f in os.listdir(folder) if f.lower().endswith(IMAGE_EXTENSIONS)],
@@ -1018,6 +1024,9 @@ def _ocr_folder_pass(folder: str, tesseract_args: tuple[str, ...]) -> list[tuple
     )
     pages: list[tuple[str, list[str]]] = []
     for fname in pngs:
+        if binary_pages is not None and fname in binary_pages:
+            pages.append((fname, binary_pages[fname]))
+            continue
         path = os.path.join(folder, fname)
         result = subprocess.run(
             ["tesseract", path, "stdout", *tesseract_args],
@@ -1157,24 +1166,63 @@ def _deduplicate_adjacent_page_overlap(pages: list[tuple[str, list[str]]]) -> tu
     return output, removed
 
 
-def ocr_folder(folder: str, write_pass_logs: bool = True) -> list[str]:
+def ocr_folder(
+    folder: str, write_pass_logs: bool = True, capture_format: str = "auto",
+) -> list[str]:
     """OCR all PNGs in folder via 3-pass consensus and return corrected filtered lines.
 
     When write_pass_logs=True, intermediate pass logs are written as log1.txt/log2.txt/log3.txt.
     """
+    binary_pages: dict[str, list[str]] = {}
+    if capture_format != "text":
+        for fname in sorted(os.listdir(folder)):
+            if not fname.lower().endswith(IMAGE_EXTENSIONS):
+                continue
+            try:
+                decoded = decode_image(os.path.join(folder, fname), required=capture_format == "binary")
+            except BinaryDecodeError as error:
+                raise BinaryDecodeError(f"{fname}: {error}") from error
+            if decoded is not None:
+                binary_pages[fname] = [line for line in decoded if is_relevant_line(line)]
     pass_outputs: list[list[tuple[str, list[str]]]] = []
     for variant_filename, tesseract_args in OCR_PASSES:
-        pass_pages = _ocr_folder_pass(folder, tesseract_args)
+        pass_pages = _ocr_folder_pass(folder, tesseract_args, binary_pages)
         pass_outputs.append(pass_pages)
         if write_pass_logs:
             variant_lines = _flatten_pages(pass_pages)
             _write_log_lines(os.path.join(folder, variant_filename), variant_lines)
 
     consensus = _consensus_pages(pass_outputs)
+    consensus = [(fname, binary_pages.get(fname, lines)) for fname, lines in consensus]
     consensus, _ = _deduplicate_adjacent_page_overlap(consensus)
-    lines_out = _flatten_pages(consensus)
-    lines_out, _ = _postprocess_consensus_lines(lines_out)
+    tagged = [(fname, [BINARY_CACHE_MARKER, *lines] if fname in binary_pages else lines)
+              for fname, lines in consensus]
+    lines_out, _ = _postprocess_capture_lines(_flatten_pages(tagged))
     return lines_out
+
+
+def _postprocess_capture_lines(lines: list[str]) -> tuple[list[str], int]:
+    """Keep verified binary sections out of English OCR repair heuristics."""
+    output: list[str] = []
+    pending: list[str] = []
+    binary = False
+    repairs = 0
+    for line in lines:
+        if line.startswith("=== "):
+            binary = False
+        if line == BINARY_CACHE_MARKER:
+            corrected, count = _postprocess_consensus_lines(pending)
+            output.extend(corrected)
+            repairs += count
+            pending.clear()
+            binary = True
+        if binary:
+            output.append(line)
+        else:
+            pending.append(line)
+    corrected, count = _postprocess_consensus_lines(pending)
+    output.extend(corrected)
+    return output, repairs + count
 
 
 def audit_ocr_lines(lines: list[str]) -> list[str]:
@@ -1361,14 +1409,19 @@ def normalize_cached_logs(dry_run: bool = False) -> None:
 
         new_lines: list[str] = []
         line_changes = 0
+        binary = False
         for line in lines:
             stripped = line.rstrip("\n")
-            normalized = normalize_ocr_line(stripped)
+            if stripped.startswith("=== "):
+                binary = False
+            if stripped == BINARY_CACHE_MARKER:
+                binary = True
+            normalized = stripped if binary else normalize_ocr_line(stripped)
             if normalized != stripped:
                 line_changes += 1
             new_lines.append(normalized + "\n")
 
-        repaired_lines, post_repairs = _postprocess_consensus_lines([l.rstrip("\n") for l in new_lines])
+        repaired_lines, post_repairs = _postprocess_capture_lines([l.rstrip("\n") for l in new_lines])
         if post_repairs:
             line_changes += post_repairs
             total_timestamp_repairs += post_repairs
@@ -1390,7 +1443,7 @@ def normalize_cached_logs(dry_run: bool = False) -> None:
     )
 
 
-def process_folders(folders: list[str], force: bool = False) -> None:
+def process_folders(folders: list[str], force: bool = False, capture_format: str = "auto") -> None:
     """OCR and audit only the requested pull folders."""
     skipped = 0
     processed = 0
@@ -1410,7 +1463,7 @@ def process_folders(folders: list[str], force: bool = False) -> None:
             skipped += 1
             continue
         print(f"OCR-ing: {folder} ...", end=" ", flush=True)
-        lines = ocr_folder(folder)
+        lines = ocr_folder(folder, capture_format=capture_format)
         with open(log_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
         issues = audit_ocr_folder(folder)
@@ -1420,7 +1473,7 @@ def process_folders(folders: list[str], force: bool = False) -> None:
     print(f"\nProcessed {processed} folder(s), skipped {skipped} (already cached).")
 
 
-def process_all(force: bool = False) -> None:
+def process_all(force: bool = False, capture_format: str = "auto") -> None:
     image_dirs: set[str] = set()
     for root in LOG_ROOTS:
         if not os.path.isdir(root):
@@ -1428,7 +1481,7 @@ def process_all(force: bool = False) -> None:
         for dirpath, _, filenames in os.walk(root):
             if any(name.lower().endswith(IMAGE_EXTENSIONS) for name in filenames):
                 image_dirs.add(dirpath)
-    process_folders(sorted(image_dirs), force=force)
+    process_folders(sorted(image_dirs), force=force, capture_format=capture_format)
 
 
 def _canonical_spell_name(name: str) -> str:
@@ -1773,25 +1826,31 @@ def verify_all() -> None:
 
 
 if __name__ == "__main__":
-    force = "--force" in sys.argv
-    verify = "--verify" in sys.argv
-    normalize = "--normalize" in sys.argv
-    qa = "--qa" in sys.argv
-    audit_ocr = "--audit-ocr" in sys.argv
-    dry_run = "--dry-run" in sys.argv
-    folder_paths: list[str] = []
-    if "--folder" in sys.argv:
-        folder_index = sys.argv.index("--folder")
-        folder_paths = [arg for arg in sys.argv[folder_index + 1 :] if not arg.startswith("--")]
-    if normalize:
-        normalize_cached_logs(dry_run=dry_run)
-    elif audit_ocr:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--verify", action="store_true")
+    parser.add_argument("--normalize", action="store_true")
+    parser.add_argument("--qa", action="store_true")
+    parser.add_argument("--audit-ocr", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--folder", nargs="+")
+    parser.add_argument("--capture-format", choices=("auto", "text", "binary"), default="auto",
+                        help="auto detects Binary v1; use binary to reject unreadable/cropped captures")
+    args = parser.parse_args()
+    if args.normalize:
+        normalize_cached_logs(dry_run=args.dry_run)
+    elif args.audit_ocr:
         audit_cached_ocr_logs()
-    elif qa:
+    elif args.qa:
         qa_logs()
-    elif verify:
+    elif args.verify:
         verify_all()
-    elif folder_paths:
-        process_folders(folder_paths, force=force)
     else:
-        process_all(force=force)
+        try:
+            if args.folder:
+                process_folders(args.folder, force=args.force, capture_format=args.capture_format)
+            else:
+                process_all(force=args.force, capture_format=args.capture_format)
+        except (BinaryDecodeError, ModuleNotFoundError) as error:
+            print(f"OCR failed: {error}", file=sys.stderr)
+            sys.exit(1)

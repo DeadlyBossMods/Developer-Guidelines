@@ -23,6 +23,14 @@ Additional pull folders can follow the first path. Do not substitute raw Tessera
 
 The targeted command preserves an existing canonical cache and refreshes its audit. For a new cache, preserve all three pass files (`log1.txt`, `log2.txt`, `log3.txt`), the canonical `log.txt`, and `ocr_issues.txt`. Do not use `--force` routinely: it overwrites the canonical cache and may discard reviewed repairs.
 
+## Optional binary captures
+
+- The debug viewer keeps the human-readable font by default. Its binary-font button selects the experimental ASCII Binary v1 font without inspecting or encoding secret text in Lua. Capture the full panel, including the binary page-count header and both ends of every row.
+- Install the OCR dependencies from `Agent Tools/requirements-ocr.txt` in the interpreter used for the pipeline. `dbm_binary_font.py` must be installed beside `ocr_logs.py`. Pillow handles binary decoding; fontTools is needed only to regenerate the font. Tesseract remains required for ordinary text.
+- Auto mode supports ordinary text, binary, and mixed folders. For a known binary folder, add `--capture-format binary` to the canonical command so completely unreadable pages also fail explicitly. `--capture-format text` selects the original English OCR path without loading Pillow.
+- Binary decoding checks three pixel thresholds, per-character parity, row framing, and the declared page row count. Failures require source review/recapture, not guessed text or fallback to English OCR. Verified binary sections are marked in `log.txt` and excluded from English repair heuristics, including `--normalize`; text sections retain the normal three-pass corrections.
+- Binary v1 preserves printable ASCII only. Non-ASCII names, embedded textures, insufficient pixel resolution, clipping, and resampling are unsupported/error cases. Desktop raster tests do not establish WoW rendering or secret-value safety in game. Do not claim near-100% accuracy or complete capture from a successful decode alone.
+
 ## Resolve audit issues before routing
 
 Inspect every screenshot implicated by an audit issue. Repair the canonical cache from image evidence, then rerun the same targeted command to refresh the audit without overwriting those repairs.
