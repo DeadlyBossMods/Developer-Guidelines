@@ -1,6 +1,6 @@
 ---
 name: DBM Development Conventions
-description: "Use when adding or changing DBM features or settings, validating LuaLS diagnostics against CI, evaluating runtime efficiency and lazy initialization, or changing boss-token presence, threat or target comparisons versus secret unit identity, secret-safe class coloring or distance checks, cross-client range calibration, cached wipe health, event-handler guards, core refactors, localization, agent-only tools, or Mythic+ encounter-active checks."
+description: "Use when adding or changing DBM features or settings, validating LuaLS diagnostics against CI, evaluating runtime efficiency and lazy initialization, handling secret values, table keys, boolean tests or widget getters, or changing boss-token presence, threat or target comparisons versus secret unit identity, secret-safe class coloring or distance checks, cross-client range calibration, cached wipe health, event-handler guards, core refactors, localization, agent-only tools, or Mythic+ encounter-active checks."
 ---
 
 # DBM Development Conventions
@@ -36,6 +36,21 @@ description: "Use when adding or changing DBM features or settings, validating L
 - Validate both never-enabled and enable/disable/re-enable paths. Verify no feature work while off, no duplicate registrations or callbacks after re-enable, and no stale callback restarting work after disable. Exercise callbacks in tests rather than relying on no-op scheduler mocks.
 
 ## Secret-safe APIs
+
+### Secret-value operations and storage
+
+- On tainted addon execution paths, secret values remain opaque. Never compare them (`==`, `~=`, `<`, etc.), do arithmetic on them, measure them with `#`, parse them, sort them, or derive public identity/routing/cache metadata from them. `if secretValue ~= 0 then` is forbidden even when only testing for a nonzero value.
+- Never use a secret as a table key: `cache[secretValue]`, `{[secretValue] = value}`, sets, memoization, and indirect helper/metatable lookups have the same restriction. Never index or assign fields on a secret table value, or measure/iterate a forbidden table. Metatables and `rawget`/`rawset` are not bypasses. Where table accessibility is uncertain, use the supported `canaccesstable`/`issecrettable` APIs before access; checking the table's ordinary Lua type is insufficient.
+- Storing a secret as an opaque value in an otherwise accessible table is technically permitted, unlike using it as a key. That storage does not declassify it or authorize later comparison, parsing, aggregation, deduplication, or caching for logic. Preserve established display-only forwarding; inspect downstream consumers before introducing any new storage.
+- Boolean tests are permitted for non-boolean secret types only: `if secretNumber then` tests presence, not whether the number is nonzero (Lua treats zero as truthy). A secret boolean cannot drive `if`, `not`, `and`, or `or`; do not use `value or default` or `value and result` when the value may be a secret boolean. `type(value)` is public, but does not reveal the secret value. Use supported secrecy/access predicates when needed, without rejecting valid opaque display inputs merely because they are secret.
+- Pass opaque values only to Lua forwarding paths and native APIs whose contracts accept secrets from tainted callers. Permitted concatenation/native formatting may produce secret output, not readable public text. Do not inspect the formatted result or use conversion/formatting as a declassification workaround; follow the [secret-safe warning rules](dbm-warning-rendering.instructions.md) for rendering and sinks.
+
+### Widget readback and API access
+
+- A successful `SetText`, `SetTexture`, or other display setter does not authorize reading that field back. Never use `GetText`, `GetTexture`, or another getter to recover/inspect a secret aspect or reconstruct secret identity/state. Inspect the exact getter's access restrictions and conditional secret returns for the targeted client: some getters block access or return nothing, while others return an opaque secret. There is no blanket permission or prohibition based on the `Get*` name alone.
+- Keep public layout/ownership/configuration metadata separately from opaque native display state. Use a documented access predicate where available before restricted readback; do not probe with `pcall`, parse rendered text/colors/textures, or silently treat denied access as empty data. Source/API review and desktop mocks do not establish live-client secret safety.
+
+### Direct unit-token contracts
 
 - During restricted encounter logic, public boss unit tokens such as `"boss1"`/`"boss2"` may be used with `UnitExists`, and its presence result may drive logic. Do not reject this permitted check merely because the occupying unit has secret identity.
 - Boss-slot presence is not occupant identity. Do not fetch, compare, parse, or identify the occupant through `UnitGUID`, `DBM:GetCIDFromGUID`, or equivalent identity-inspecting helpers for restricted module decisions. Check helper internals; a public input token does not make every operation on its occupant safe. This is not a blanket ban on existing Classic/core APIs or legal display-only sinks.
