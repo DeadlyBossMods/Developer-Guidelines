@@ -1,6 +1,10 @@
 local frames, fontLoads, messages = {}, 0, {}
 local failFont = false
 local registeredFonts, fontObjects = {}, 0
+local windows = arg[1] == "--windows" or arg[2] == "--windows"
+local binaryPath = "Interface\\AddOns\\DBM-Core\\fonts\\DBMBinary.ttf"
+local resolvedBinaryPath = windows and "resolved-binary-font-asset" or binaryPath
+local setFontAfterText = 0
 local Frame = {}
 Frame.__index = Frame
 
@@ -17,7 +21,10 @@ function Frame:GetHeight()
 	return self.parent:GetHeight() + self.points.TOPLEFT[2] - self.points.BOTTOMRIGHT[2]
 end
 function Frame:SetScript(name, callback) self.scripts[name] = callback end
-function Frame:SetText(text) self.text = text end
+function Frame:SetText(text)
+	self.text = text
+	self.textAssigned = true
+end
 function Frame:SetFont(path, size)
 	if path == "Fonts\\FRIZQT__.TTF" then
 		self.binary = false
@@ -25,8 +32,12 @@ function Frame:SetFont(path, size)
 		self.explicitFont = true
 		return true
 	end
-	assert(path == "Interface\\AddOns\\DBM-Core\\fonts\\DBMBinary.ttf")
+	assert(path == binaryPath or path == resolvedBinaryPath)
 	fontLoads = fontLoads + 1
+	if self.textAssigned then
+		setFontAfterText = setFontAfterText + 1
+		if windows then return false end
+	end
 	if failFont or not registeredFonts[path] or not self.fontObject then return false end
 	self.binary = true
 	self.fontSize = size
@@ -76,8 +87,15 @@ function CreateFont(name)
 	assert(fontObjects == 1, "Reuse the binary font object across toggles and scale changes")
 	return {
 		SetFont = function(self, path, size)
-			registeredFonts[path] = true
+			assert(path == binaryPath)
+			registeredFonts[resolvedBinaryPath] = true
 			self.fontSize = size
+			for _, frame in ipairs(frames) do
+				if frame.fontObject == self then frame.fontSize = size end
+			end
+		end,
+		GetFont = function(self)
+			return resolvedBinaryPath, self.fontSize, ""
 		end,
 	}
 end
@@ -130,6 +148,10 @@ end
 local textRows = #visibleRecords()
 local debugFrame = frames[1]
 local originalWidth, originalHeight = debugFrame.width, debugFrame.height
+failFont = true
+click("Binary capture font")
+assert(not DBM.Options.DebugLogBinaryFont and messages[#messages] == "Font failed")
+failFont = false
 click("Binary capture font")
 assert(DBM.Options.DebugLogBinaryFont and fontLoads > 0 and fontObjects == 1)
 assert(debugFrame.width == originalWidth and debugFrame.height == originalHeight, "Font toggle preserves window size")
@@ -160,11 +182,6 @@ for _, frame in ipairs(frames) do
 end
 assert(debugFrame.width == originalWidth and debugFrame.height == originalHeight, "Restoring text preserves window size")
 
-failFont = true
-click("Binary capture font")
-assert(not DBM.Options.DebugLogBinaryFont and messages[#messages] == "Font failed")
-failFont = false
-click("Binary capture font")
 DBM.Options.DebugLogBinaryFont = false
 DBM:Debug("profile reset record", 4, nil, nil, true, true)
 assert(not header.shown, "Profile changes restore the font on refresh")
@@ -175,6 +192,7 @@ UIParent.scale = 0.7
 DBM:Debug("record 999", 4, nil, nil, true, true)
 assert(math.abs(header.fontSize * UIParent.scale - 12) < 0.001, "Binary cells retain physical pixel size")
 assert(header.text == "~DBM1~#DBMP1:1~END~")
+assert(setFontAfterText == 0, "Never change a FontString font after text is assigned")
 DBM.Options.DebugMode = false
 module:OnDebugToggle()
 print("Binary debug viewer: default/off, toggle, framing, pagination, clear, font failure, profile reset, UI scale passed")
