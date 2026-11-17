@@ -33,6 +33,7 @@
 
 ## Build and Test
 - Validate Lua syntax, Luacheck, and LuaLS diagnostics; repository CI defines lint and packaging checks. Follow the [scope-aware LuaLS validation checklist](instructions/dbm-development.instructions.md#luals-validation-parity): correctly configured focused local diagnostics suffice for encounter-only edits; core/shared changes require the full CI-equivalent check.
+- LuaLS is bundled with the VS Code Lua extension and may not be on `PATH`; use its installed server binary as described in the validation checklist instead of treating a failed shell lookup as a missing validator.
 - In-game demo: /dbm test. GUI buttons previewing renames, timers, and alerts are independent production features and must be preserved.
 
 ## Screenshot Log Analysis
