@@ -1,6 +1,6 @@
 ---
 name: DBM Development Conventions
-description: "Use when adding or changing DBM features or settings, validating LuaLS diagnostics against CI, evaluating runtime efficiency and lazy initialization, handling secret values, table keys, boolean tests or widget getters, or changing boss-token presence, threat or target comparisons versus secret unit identity, secret-safe class coloring or distance checks, cross-client range calibration, cached wipe health, event-handler guards, core refactors, localization, agent-only tools, or Mythic+ encounter-active checks."
+description: "Use when diagnosing or fixing DBM bugs, adding or changing features or settings, validating LuaLS diagnostics against CI, evaluating runtime efficiency and lazy initialization, handling secret values, table keys, boolean tests or widget getters, or changing boss-token presence, threat or target comparisons versus secret unit identity, secret-safe class coloring or distance checks, cross-client range calibration, cached wipe health, event-handler guards, core refactors, localization, agent-only tools, or Mythic+ encounter-active checks."
 ---
 
 # DBM Development Conventions
@@ -10,6 +10,12 @@ description: "Use when adding or changing DBM features or settings, validating L
 - Distinguish an external addon's observed implementation, a demonstrated DBM defect, approved scope, and completed/live-validated work. Similar code or a different layout alone is not a defect or permission for a broader port; source similarity does not establish performance gains or taint safety.
 - Verify live state and expected outputs after a reported restore or completed action; an action summary alone is not evidence of completion. This does not authorize discarding changes.
 - Mocks must execute the lifecycle whose correctness is claimed. For scheduling/cleanup claims, run queued callbacks and verify unaffected owners rather than relying on no-op stubs or pass totals alone.
+
+## Fix the cause, not the symptom
+
+- Before changing code to fix a bug, identify the faulting operation, the unexpected value or state, and why it arose. Trace the relevant producer and lifecycle using available evidence; distinguish a verified cause from a hypothesis.
+- Correct the underlying cause rather than adding a nil check, default, or bad-value guard merely to silence the symptom. Necessary validation for legitimate optional or external inputs remains appropriate; preserve intended behavior and surface failures according to existing conventions.
+- If the cause cannot be established or fixed and symptom mitigation is the only viable approach, stop and discuss the evidence, limitation, and options with the user before implementing it. Validate the fix against the original failure and relevant behavior.
 
 ## Match surrounding code
 

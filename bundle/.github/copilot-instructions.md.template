@@ -48,6 +48,7 @@
 - When working on an encounter, read its relevant section in [DBM Encounter-Specific Guidance](instructions/dbm-encounter-specific.instructions.md); keep historical findings scoped rather than treating them as current validation.
 
 ## Project Conventions
+- Before fixing bugs, follow the root-cause diagnosis and mitigation-approval rules in [DBM Development Conventions](instructions/dbm-development.instructions.md).
 - Before adding or changing features/settings, follow the surrounding-code, zero-cost-disabled, low-cost-enabled, lazy-initialization, and exception-approval rules in [DBM Development Conventions](instructions/dbm-development.instructions.md). Also use that guidance for secret-safe APIs, cross-client range calibration, wipe-health caching, handler guards, core refactors, localization, agent tooling, and Mythic+ encounter-active checks.
 - For native aura tracking, formatters/previews, glows/sounds, external aura-addon adaptations, or Mainline/Classic nameplate compatibility, follow the [DBM Auras and Nameplate Compatibility rules](instructions/dbm-aura-nameplate.instructions.md).
 - For secret warning rendering, target helpers, aggregation scheduling, slots/chat/notes, or shared generic warnings, follow the [DBM Secret-Safe Warning rules](instructions/dbm-warning-rendering.instructions.md).
