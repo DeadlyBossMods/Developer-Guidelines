@@ -44,6 +44,11 @@ description: "Use when diagnosing or fixing DBM bugs, adding or changing feature
 
 ## Secret-safe APIs
 
+### UNIT_DIED across clients
+
+- Retail and Forever expose `UNIT_DIED` as a standalone event carrying a GUID; register it as a normal frame event, not as a `COMBAT_LOG_EVENT_UNFILTERED` subevent or unit-token-filtered event. Other game versions use the combat-log subevent and its destination GUID. Preserve the existing legacy handler and payload shape.
+- The standalone GUID is secret when unit identity is restricted. Check `issecretvalue` before parsing, comparing, or using it as a key; an outdoor GUID may be public, but do not assume every event is. World-boss death detection is registered alongside outdoor target scanning and uses the existing combat kill rules.
+
 ### Secret-value operations and storage
 
 - On tainted addon execution paths, secret values remain opaque. Never compare them (`==`, `~=`, `<`, etc.), do arithmetic on them, measure them with `#`, parse them, sort them, or derive public identity/routing/cache metadata from them. `if secretValue ~= 0 then` is forbidden even when only testing for a nonzero value.
