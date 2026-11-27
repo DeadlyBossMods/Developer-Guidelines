@@ -11,9 +11,16 @@ description: "Use when locating DBM pull logs, checking screenshot capture compl
 - Known raid layouts use `<Difficulty>/<Week-or-PTR>/<BossFolder>`; Mythic+ layouts use `M+/<Week>/<Dungeon>/<BossFolder>` or the older `M+/<Dungeon>/<BossFolder>`. These are discovery hints, not exhaustive path requirements.
 - Search `12.0 Logs/` only when requested or needed to follow cited historical evidence; label that evidence's coverage explicitly. Encounter metadata, not folder labels, determines difficulty.
 
+## Crop check before OCR
+
+- Before running new OCR, check the pull's screenshots for unwanted surrounding UI, headers, or buttons. If no cropping is needed, proceed without prompting. Reusing an existing cache and refreshing its audit does not require a crop check.
+- When cropping is needed, prepare non-destructive candidate crops that exclude unrelated UI while preserving every visible log row and both ends of each row. Preserve binary capture headers and framing; do not resize or resample. Cropping cannot recover content already clipped in the original.
+- Show the candidate crops to the user and ask them to verify and approve them before running OCR. Wait for explicit approval; revise rejected crops or stop if the boundaries are uncertain. Never proceed automatically on unapproved crops.
+- Run the canonical pipeline on a working pull folder containing the approved crops and any unchanged screenshots, preserving page order. Keep the originals untouched and preserve the resulting canonical cache, three pass files, and audit report with the original pull without overwriting an existing reviewed cache. Use the original images when investigating capture completeness or audit issues.
+
 ## Required pipeline
 
-Before interpreting screenshot logs or changing log-derived routing, run the [canonical OCR script](<../../Agent Tools/ocr_logs.py>) from the workspace root for the requested pull folders:
+Before interpreting screenshot logs or changing log-derived routing, run the [canonical OCR script](<../../Agent Tools/ocr_logs.py>) from the workspace root for the requested pull folders, or the approved working folders described above:
 
 ```sh
 python3 "Agent Tools/ocr_logs.py" --folder "<pull-folder>"
